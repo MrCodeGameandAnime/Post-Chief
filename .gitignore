@@ -3,6 +3,7 @@ root/node_modules/
 root/**/node_modules/
 root/**/dist/
 root/.pytest_cache/
+root/.pytest-tmp/
 **/__pycache__/
 **/*.egg-info/
 root/.env

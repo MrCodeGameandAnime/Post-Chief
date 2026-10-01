@@ -18,3 +18,4 @@ where = ["src/apps/api", "src/apps/worker", "src/packages"]
 testpaths = ["tests"]
 pythonpath = ["src/apps/api", "src/apps/worker", "src/packages"]
 asyncio_mode = "auto"
+addopts = "--basetemp=.pytest-tmp"

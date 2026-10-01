@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
+from fastapi import Request
 
 
 def make_engine(url: str):
@@ -11,6 +12,6 @@ def make_engine(url: str):
     return engine
 
 
-def get_db(request):
+def get_db(request: Request):
     with request.app.state.sessions() as session:
         yield session
