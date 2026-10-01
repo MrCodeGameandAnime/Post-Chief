@@ -14,10 +14,10 @@ Backend
 FastAPI
 PostgreSQL
 Redis
-Celery or Dramatiq
+Celery
 ```
 
-Structure:
+Application runtime and manifests live in `root/`; source packages live in `root/src/`:
 
 ```text
 apps/

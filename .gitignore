@@ -1,0 +1,16 @@
+root/.venv/
+root/node_modules/
+root/**/node_modules/
+root/**/dist/
+root/.pytest_cache/
+**/__pycache__/
+**/*.egg-info/
+root/.env
+root/.env.*
+!root/.env.example
+root/data/
+root/test-results/
+root/coverage/
+root/.npm-cache/
+**/*.tsbuildinfo
+*.pem

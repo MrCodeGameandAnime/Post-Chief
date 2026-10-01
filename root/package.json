@@ -1,0 +1,1 @@
+{"name":"post-chief-workspace","private":true,"workspaces":["src/apps/web","src/packages/api-client","src/packages/shared-types"],"scripts":{"dev":"npm run dev -w @post-chief/web","build":"npm run build -w @post-chief/web","typecheck":"npm run typecheck -w @post-chief/web","test":"npm run test -w @post-chief/web"}}

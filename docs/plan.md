@@ -19,15 +19,15 @@ decides what work is required
         ↓
 creates or updates posts and assets
         ↓
-calls 404 Social API
+calls Post Chief API
         ↓
-404 Social schedules / publishes
+Post Chief schedules / publishes
         ↓
 native social APIs
         ↓
 metrics / results / failures
         ↓
-404 Social API
+Post Chief API
         ↓
 GPT maintainer agent
         ↓
@@ -36,7 +36,7 @@ writes durable state back to GitHub
 
 GitHub is the durable planning and knowledge layer.
 
-404 Social is the operational execution layer.
+Post Chief is the operational execution layer.
 
 GPT is the maintainer/operator.
 
@@ -514,7 +514,7 @@ That belongs inside the provider.
 
 # 9. Scheduler
 
-404 Social owns scheduling.
+Post Chief owns scheduling.
 
 Do not depend on the social network having native scheduled-post support.
 
@@ -581,7 +581,7 @@ Example daily cycle:
    relevant recent posts/
    relevant templates/
 
-3. Query 404 Social:
+3. Query Post Chief:
    connected networks
    scheduled campaigns
    recent publications
@@ -601,7 +601,7 @@ Example daily cycle:
 
 7. Write/update GitHub records.
 
-8. Submit campaign through 404 Social API.
+8. Submit campaign through Post Chief API.
 
 9. Schedule or publish according to plan and autonomy rules.
 
@@ -987,7 +987,7 @@ Only use repositories granted to the GitHub App.
 The MVP is complete when this exact workflow works end-to-end:
 
 ```text
-1. User signs into 404 Social.
+1. User signs into Post Chief.
 
 2. User connects:
    GitHub
@@ -1009,11 +1009,11 @@ The MVP is complete when this exact workflow works end-to-end:
 
 7. Campaign is scheduled.
 
-8. At the scheduled time, 404 Social publishes it.
+8. At the scheduled time, Post Chief publishes it.
 
 9. Dashboard reports success/failure independently per platform.
 
-10. 404 Social retrieves basic metrics.
+10. Post Chief retrieves basic metrics.
 
 11. GPT maintainer retrieves results through the API.
 
@@ -1057,7 +1057,7 @@ GitHub
    ↓
 GPT
    ↓
-404 Social API
+Post Chief API
    ↓
 native social platforms
    ↓
@@ -1158,7 +1158,7 @@ Review recent content and analytics.
 Inspect authorized project repositories when useful.
 Prepare content only when warranted.
 Use existing templates and approved assets.
-Schedule and publish through 404 Social.
+Schedule and publish through Post Chief.
 Handle platform failures safely.
 Record publication results.
 Update GitHub with durable content and analytics history.

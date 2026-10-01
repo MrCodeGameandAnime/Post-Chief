@@ -1,0 +1,25 @@
+name: Application checks
+on: [push, pull_request]
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: root
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: root/package-lock.json
+      - run: pip install -r requirements.lock
+      - run: python -m pytest -q
+      - run: mkdir -p data && alembic upgrade head && alembic check
+        env:
+          DATABASE_URL: sqlite:///data/ci.db
+      - run: npm ci
+      - run: npm run typecheck && npm run build && npm test

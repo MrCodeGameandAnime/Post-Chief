@@ -1,0 +1,48 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: postchief
+      POSTGRES_USER: postchief
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes: ["postgres:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postchief"]
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+  redis:
+    image: redis:8-alpine
+    command: redis-server --appendonly yes
+    volumes: ["redis:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+  migrate:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://postchief:${POSTGRES_PASSWORD}@db:5432/postchief
+    command: alembic upgrade head
+    depends_on:
+      db: {condition: service_healthy}
+  api:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://postchief:${POSTGRES_PASSWORD}@db:5432/postchief
+      REDIS_URL: redis://redis:6379/0
+      SIGNING_KEY: ${SIGNING_KEY:?Generate SIGNING_KEY}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Generate ENCRYPTION_KEY}
+    ports: ["127.0.0.1:8000:8000"]
+    volumes: ["media:/app/data/media"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+    restart: unless-stopped
+volumes:
+  postgres:
+  redis:
+  media:
