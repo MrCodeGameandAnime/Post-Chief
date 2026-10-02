@@ -1,4 +1,6 @@
 import secrets
+import base64
+import hashlib
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 import httpx
@@ -9,6 +11,7 @@ from postchief.auth import Actor, digest, require_owner
 from postchief.db import get_db
 from postchief.models import OAuthState
 from postchief.providers.routes import save_connection
+from postchief.providers.x import SCOPES, BASE, pkce_verifier, token_auth, token_credentials, numeric_id
 from provider_contracts import ProviderError, ErrorReason
 
 router=APIRouter(tags=['OAuth connections'])
@@ -21,6 +24,13 @@ class OAuthService:
 
     def authorization_url(self,provider,state):
         s=self.settings
+        if provider=='x':
+            if not s.x_client_id or not s.x_client_secret.get_secret_value():
+                raise HTTPException(503,'Configure the X OAuth 2.0 client ID and secret before connecting')
+            challenge=base64.urlsafe_b64encode(hashlib.sha256(pkce_verifier(s,state).encode()).digest()).rstrip(b'=').decode()
+            return 'https://x.com/i/oauth2/authorize?'+urlencode({'client_id':s.x_client_id,
+                'redirect_uri':self.redirect_uri(provider),'scope':SCOPES,'response_type':'code','state':state,
+                'code_challenge':challenge,'code_challenge_method':'S256'})
         if provider=='meta':
             app,secret=s.meta_client_id,s.meta_client_secret.get_secret_value()
             endpoint=f'https://www.facebook.com/{s.meta_api_version}/dialog/oauth'
@@ -57,8 +67,22 @@ class OAuthService:
             raise ProviderError(ErrorReason.AUTH_REVOKED,message)
         return value
 
-    async def exchange(self,provider,code):
+    async def exchange(self,provider,code,state=None):
         s=self.settings
+        if provider=='x':
+            if not state: raise HTTPException(400,'Start a fresh X connection from Connections')
+            value=await self.request('POST',BASE+'oauth2/token',auth=token_auth(s),data={
+                'grant_type':'authorization_code','code':code,'redirect_uri':self.redirect_uri(provider),
+                'code_verifier':pkce_verifier(s,state)},failure_stage='X authorization code exchange failed')
+            credentials=token_credentials(value)
+            profile=await self.request('GET',BASE+'users/me',headers={'Authorization':'Bearer '+credentials['access_token']},
+                failure_stage='X profile lookup failed')
+            data=profile.get('data',{})
+            if not numeric_id(data.get('id')) or not isinstance(data.get('username'),str):
+                raise ProviderError(ErrorReason.AUTH_REVOKED,'X did not return an account identity; reconnect')
+            credentials.update(id=data['id'],username=data['username'],scopes=value.get('scope',SCOPES).split())
+            return [{'provider':'x','id':data['id'],'name':data['username'],'credentials':credentials,
+                'expires_at':datetime.fromisoformat(credentials['expires_at'])}]
         if provider=='linkedin':
             value=await self.request('POST','https://www.linkedin.com/oauth/v2/accessToken',data={
                 'client_id':s.linkedin_client_id,'client_secret':s.linkedin_client_secret.get_secret_value(),
@@ -143,7 +167,7 @@ async def callback(provider:str,request:Request,state:str|None=None,code:str|Non
     db.commit()
     if consumed.rowcount!=1: raise HTTPException(400,'OAuth state is invalid, expired or already used')
     if rejected or not code: raise HTTPException(400,rejection)
-    accounts=await service.exchange(provider,code)
+    accounts=await service.exchange(provider,code,state) if provider=='x' else await service.exchange(provider,code)
     connected=[]
     for account in accounts:
         connected.append(save_connection(db,request.app.state.settings,actor,account['provider'],account['id'],account['name'],account['credentials'],account.get('expires_at')))

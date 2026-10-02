@@ -28,10 +28,11 @@ import {
 } from "./Maintenance";
 
 const providers: ProviderName[] = [
-  "bluesky",
   "facebook",
   "instagram",
   "threads",
+  "x",
+  "bluesky",
   "linkedin",
 ];
 const date = (value: string | null, fallback = "Not reported") =>
@@ -1037,7 +1038,10 @@ function Connections({
       <div className="connection-grid">
         {providers.map((provider) => (
           <article className="panel" key={provider}>
-            <h3>{provider}</h3>
+            <h3>{provider === "x" ? "X" : provider}</h3>
+            {provider === "x" && (
+              <p className="muted">X API requests use paid credits. Metrics refresh only when requested.</p>
+            )}
             {accounts
               .filter((a) => a.provider === provider)
               .map((account) => (
@@ -1162,7 +1166,7 @@ function Connections({
                   })
                 }
               >
-                Connect {provider}
+                Connect {provider === "x" ? "X" : provider}
               </button>
             )}
           </article>

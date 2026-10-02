@@ -2,6 +2,8 @@
 
 Self-hosted social planning, publishing, analytics and agent control for 404 Builds. GitHub remains the durable content workspace; Post Chief stores operational state and executes publishing.
 
+Core networks: Facebook, Instagram, Threads and X. Bluesky and LinkedIn are optional follow-ups. X setup is documented in [provider setup](docs/providers.md#x-current-priority); live X acceptance remains pending owner consent and reviewed content.
+
 ## Layout
 
 - `docs/`: product plan, stack and architecture.

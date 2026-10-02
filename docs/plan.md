@@ -206,6 +206,10 @@ Repeated execution must not accidentally create duplicate social posts.
 
 ---
 
+# Current owner priority (October 2, 2026)
+
+The core networks are Facebook, Instagram, Threads and X. Prioritize X next; LinkedIn and Bluesky are deferred optional integrations. The original phased provider list below is retained as historical product planning. Live Facebook/Instagram/Threads acceptance is recorded in `docs/dogfood.md`; X requires separate owner account consent and reviewed live content.
+
 # 3. Provider Architecture
 
 Do not scatter platform-specific behavior throughout the codebase.

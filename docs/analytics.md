@@ -1,6 +1,6 @@
 # Analytics ingestion and history
 
-Celery beat scans published destinations once per minute. Collection has an independent database lease and refresh deadline. Successful reads append immutable snapshots and are repeated hourly. Safe transient failures retry after ten minutes; permission/auth failures retain a visible error and retry after one day. Manual refresh records due work in the database without depending on Redis availability.
+Celery beat scans published destinations once per minute. Collection has an independent database lease and refresh deadline. Successful reads append immutable snapshots and are repeated hourly, except for X. X uses paid API reads and collects only after an explicit refresh request; successful and non-transient failed X reads stop until another request. Safe transient failures retry after ten minutes; permission/auth failures for other networks retain a visible error and retry after one day. Manual refresh records due work in the database without depending on Redis availability.
 
 `GET /api/analytics` returns latest snapshots per destination with campaign/provider/account context, error and next collection time. It is paginated. `GET /api/analytics/publications/{id}` returns history. `POST /api/analytics/publications/{id}/refresh` requests collection. All routes enforce organization boundaries and `analytics:read` or `analytics:collect` scopes.
 

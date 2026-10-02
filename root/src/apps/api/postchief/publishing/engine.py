@@ -7,6 +7,7 @@ from sqlalchemy import select,update,or_
 from postchief.models import Campaign,Publication,SocialAccount,AuditEvent
 from postchief.vault import Vault
 from postchief.providers.registry import get_provider
+from postchief.providers.x_credentials import current_x_credentials
 from postchief.publishing.media import media_for_campaign
 from provider_contracts import PublicationPending,ProviderError,ErrorReason
 
@@ -97,7 +98,10 @@ async def execute_publication(publication_id,sessions,settings,provider_factory=
             if now-datetime.fromisoformat(state['_execution_started'])>timedelta(hours=24):
                 raise ProviderError(ErrorReason.MEDIA_INVALID,'Publication processing exceeded 24 hours; review media')
             refresh=getattr(provider,'refresh_auth',None)
-            if credentials.get('expires_at') and utc(datetime.fromisoformat(credentials['expires_at']))<now+timedelta(days=1):
+            if account.provider=='x':
+                credentials=await current_x_credentials(sessions,settings,account_id,org_id,provider)
+                original_credentials=deepcopy(credentials)
+            elif credentials.get('expires_at') and utc(datetime.fromisoformat(credentials['expires_at']))<now+timedelta(days=1):
                 if refresh: await refresh(credentials)
                 elif utc(datetime.fromisoformat(credentials['expires_at']))<=now: raise ProviderError(ErrorReason.AUTH_EXPIRED,'Reconnect this account')
             result=await asyncio.wait_for(provider.publish(credentials,body,media,publication_id,state),timeout=150)

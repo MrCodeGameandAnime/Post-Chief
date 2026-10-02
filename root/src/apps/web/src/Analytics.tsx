@@ -79,6 +79,9 @@ export function Analytics({ run, busy }: { run: Run; busy: boolean }) {
               </button>
             </div>
           </div>
+          {row.provider === "x" && (
+            <p className="muted">X metrics refresh only on request and use X API credits.</p>
+          )}
           {row.latest ? (
             <>
               <small>

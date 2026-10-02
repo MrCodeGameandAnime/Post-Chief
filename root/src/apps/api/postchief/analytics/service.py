@@ -8,6 +8,7 @@ from sqlalchemy import select,update,or_
 from postchief.models import Publication,SocialAccount,AnalyticsSnapshot,AuditEvent
 from postchief.publishing.engine import utc,LEASE
 from postchief.providers.registry import get_provider
+from postchief.providers.x_credentials import current_x_credentials
 from postchief.vault import Vault
 from postchief.publishing.links import instagram_permalink
 from provider_contracts import ProviderError,ErrorReason
@@ -24,13 +25,16 @@ def normalize(provider,metrics):
         if name in METRICS and isinstance(value,(int,float)) and not isinstance(value,bool) and value>=0 and math.isfinite(value):
             normalized[name]=value
             semantics[name]={'replies':'Bluesky replies','reposts':'Bluesky reposts'}.get(key,f'{provider} reported {key}')
+            if provider=='x':
+                semantics[name]={'comments':'X reported replies','shares':'X reported reposts'}.get(name,f'X reported {name}')
     return {'normalized':normalized,'provider_metrics':metrics,'semantics':semantics,'provider':provider}
 
 
 def due_metrics(sessions,limit=100):
     now=datetime.now(timezone.utc)
     with sessions() as db:
-        return list(db.scalars(select(Publication.id).where(Publication.status=='published',Publication.provider_id.is_not(None),
+        return list(db.scalars(select(Publication.id).join(SocialAccount,SocialAccount.id==Publication.account_id).where(Publication.status=='published',Publication.provider_id.is_not(None),
+            or_(SocialAccount.provider!='x',Publication.analytics_next_at.is_not(None)),
             or_(Publication.analytics_next_at.is_(None),Publication.analytics_next_at<=now),
             or_(Publication.analytics_started_at.is_(None),Publication.analytics_started_at<=now-LEASE))
             .order_by(Publication.analytics_next_at,Publication.created_at).limit(limit)))
@@ -49,6 +53,7 @@ async def collect(publication_id,sessions,settings,provider_factory=get_provider
             .values(analytics_started_at=now))
         if claim.rowcount!=1: db.rollback(); return
         account=db.get(SocialAccount,pub.account_id)
+        if account.provider=='x' and pub.analytics_next_at is None: return
         org_id=pub.org_id; provider_id=pub.provider_id; encrypted=account.credentials
         if account.org_id!=org_id: db.rollback(); return
         account_id=account.id; provider_name=account.provider; active=account.active
@@ -61,7 +66,11 @@ async def collect(publication_id,sessions,settings,provider_factory=get_provider
             provider=provider_factory(provider_name,http,settings)
             if not hasattr(provider,'get_post_metrics'): raise ProviderError(ErrorReason.PERMISSION_MISSING,'Analytics is unavailable for this provider')
             async def read_metrics():
-                if credentials.get('expires_at') and utc(datetime.fromisoformat(credentials['expires_at']))<now+timedelta(days=1):
+                nonlocal credentials, original
+                if provider_name=='x':
+                    credentials=await current_x_credentials(sessions,settings,account_id,org_id,provider)
+                    original=deepcopy(credentials)
+                elif credentials.get('expires_at') and utc(datetime.fromisoformat(credentials['expires_at']))<now+timedelta(days=1):
                     if hasattr(provider,'refresh_auth'): await provider.refresh_auth(credentials)
                     elif utc(datetime.fromisoformat(credentials['expires_at']))<=now: raise ProviderError(ErrorReason.AUTH_EXPIRED,'Reconnect to collect analytics')
                 return await provider.get_post_metrics(credentials,provider_id)
@@ -79,6 +88,8 @@ async def collect(publication_id,sessions,settings,provider_factory=get_provider
         pub.analytics_started_at=None
         pub.analytics_error=error.to_dict() if error else None
         pub.analytics_next_at=datetime.now(timezone.utc)+timedelta(minutes=10 if error and error.retryable else 1440 if error else 60)
+        if provider_name=='x' and not (error and error.retryable):
+            pub.analytics_next_at=None  # Paid reads run only on an explicit refresh request.
         if metrics is not None:
             if provider_name=='instagram' and not pub.provider_url:
                 pub.provider_url=instagram_permalink(metrics.get('provider_metrics',{}).get('provider',{}).get('permalink'))

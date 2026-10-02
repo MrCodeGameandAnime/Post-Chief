@@ -14,6 +14,20 @@ Analytics reports supported engagement counters. Missing counters and unsupporte
 
 Live connection and publication still require the owner's Bluesky account and intended content. Local HTTP contract tests verify requests and recovery behavior; they do not prove live provider access.
 
+## X (current priority)
+
+The owner's core networks are Facebook, Instagram, Threads and X. Bluesky and LinkedIn remain optional follow-ups. X live account acceptance has not been performed.
+
+Configure `X_CLIENT_ID` and `X_CLIENT_SECRET` with the **OAuth 2.0** credentials for a confidential Web App in the X Developer Console. These are not the API key/secret or an app-only bearer token. Enable user authentication and register the exact callback `PUBLIC_URL/api/connections/oauth/x/callback`, plus the dashboard website URL. Start consent with **Connect X** in Connections. Requested scopes are `tweet.read tweet.write users.read media.write offline.access`. State is owner/organization-bound, expires after ten minutes and is single-use. PKCE uses S256 with a server-keyed verifier derived for each random state; token exchange uses HTTP Basic client authentication. Tokens stay encrypted on the server.
+
+X API requests use paid credits. Review credits and a spending limit in the Developer Console before live use; Post Chief does not purchase credits or change billing. X analytics collection is **manual** through Request fresh metrics: successful or non-transient failed reads stop until another request. Transient failures retain the normal retry deadline. Public metrics include reported likes, replies, reposts and impressions when available; missing fields remain unavailable. Reposts retain their meaning in provider metrics.
+
+This adapter supports ordinary posts with text and up to four JPEG, PNG or WebP images, each at most 5 MB. Text validation uses a conservative weighted bound of 280: long URLs and complex emoji can be overcounted. A provider override can shorten X copy without changing other destinations. Videos, GIFs, long posts, replies, quote posts, native text edits and image alt-text metadata are not implemented in this first pass. Each image ID and expiry is persisted before publication intent. Expired uploads require review; upload acceptance does not establish public publication.
+
+X posts use the existing scheduler, independent destination outcomes and owner reconciliation. A lost public-write response requires checking X before retrying. Successful posts retain the returned numeric ID and a public status link for feedback. Rotating refresh grants use a durable encrypted account intent and conditional save before other provider work. Concurrent jobs wait through retry; interrupted or unconfirmed renewal requires reconnecting, rather than reusing a possibly consumed refresh token. Successful renewed credentials are stored before media or public I/O.
+
+Official contracts: [OAuth PKCE](https://docs.x.com/fundamentals/authentication/oauth-2-0/user-access-token), [create posts](https://docs.x.com/x-api/posts/create-post), [media upload](https://docs.x.com/x-api/media/upload-media), [post lookup](https://docs.x.com/x-api/posts/get-post-by-id), [pricing](https://docs.x.com/x-api/getting-started/pricing).
+
 ## LinkedIn (Gate 6)
 
 Configure `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, and `LINKEDIN_API_VERSION` (default `202609`). Register `PUBLIC_URL/api/connections/oauth/linkedin/callback`. Enable the OpenID Connect and Share on LinkedIn products. The default `LINKEDIN_SCOPES` is `openid profile w_member_social`; email is unnecessary. Start the same owner OAuth flow with provider `linkedin`. Identity comes from authenticated userinfo, never an unverified ID token. Tokens, optional programmatic refresh tokens and resumable video upload credentials are encrypted.

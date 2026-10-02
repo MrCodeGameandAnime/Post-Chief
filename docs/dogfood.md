@@ -23,7 +23,7 @@ The accepted Facebook/Instagram/Threads workflow does not require Metricool. Ret
 
 - Inspect the feedback dialog and maintenance controls on a mobile viewport. Desktop screenshots establish the feedback dialog layout; mobile visual verification is still pending.
 - Review an intended Facebook feed-text replacement before applying a live edit. Check the resulting native text and separate edit history without recreating the post.
-- Configure and authorize Bluesky/LinkedIn accounts before reviewing intended live content for those providers. Their transport fixtures do not establish live access.
+- Configure and authorize X, the next core network, before reviewing intended live content. Bluesky and LinkedIn are deferred optional integrations; the owner does not have a Bluesky account.
 - Create an encrypted backup outside the deployment host and rehearse recovery using it. The synthetic PostgreSQL/media recovery rehearsal does not establish that production backups exist.
 
 These checks remain separate from the accepted Facebook/Instagram/Threads publication loop. They do not require another copy of the accepted campaign to be published.

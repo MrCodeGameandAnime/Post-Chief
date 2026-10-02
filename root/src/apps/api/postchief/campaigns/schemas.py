@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-PROVIDERS = {"facebook", "instagram", "threads", "bluesky", "linkedin"}
+PROVIDERS = {"facebook", "instagram", "threads", "x", "bluesky", "linkedin"}
 
 
 def aware(value: datetime | None):
