@@ -89,6 +89,7 @@ def deliver_destination(publication_id: str, data: Delivery, request: Request,
     at = data.scheduled_at or now
     if at.tzinfo is None or (data.scheduled_at and at <= now):
         raise HTTPException(422, 'Choose a future time with a timezone, or publish now')
+    at = at.astimezone(timezone.utc)
     account = db.get(SocialAccount, pub.account_id)
     if not account.active:
         raise HTTPException(409, 'Reconnect this destination')
