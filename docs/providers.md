@@ -13,3 +13,14 @@ Each publication gets a stable repository record key in the [TID syntax required
 Analytics reports supported engagement counters. Missing counters and unsupported impressions are not invented. Comments and replies are not advertised in this MVP adapter.
 
 Live connection and publication still require the owner's Bluesky account and intended content. Local HTTP contract tests verify requests and recovery behavior; they do not prove live provider access.
+# Meta connections
+
+Configure `META_CLIENT_ID`, `META_CLIENT_SECRET`, and `META_API_VERSION` for a Facebook App using Facebook Login. The owner authorizes Pages; linked professional Instagram accounts are discovered from those Pages. Consumer Instagram accounts are unsupported. Configure a separate Threads App using `THREADS_CLIENT_ID` and `THREADS_CLIENT_SECRET`.
+
+Register exact callbacks at `PUBLIC_URL/api/connections/oauth/meta/callback` and `PUBLIC_URL/api/connections/oauth/threads/callback`. Start with an authenticated, CSRF-protected POST to `/api/connections/oauth/{provider}/authorize`, then open the returned URL. State expires after ten minutes, is bound to the owner and organization, and is atomically consumed before exchange. Tokens are encrypted and never returned to the browser. App review and the required permissions must be available for accounts outside app roles.
+
+Facebook supports text, raster photos and MP4 Reels; Instagram supports JPEG images, MP4 Reels and carousels (application cap: ten items); Threads supports text, images, video and carousels (twenty items). Application media size is capped at 80 MiB. Media URLs for Instagram, Threads and hosted Facebook Reels require public HTTPS. Platform encoding, dimensions, duration and permission checks can still reject media. File acceptance alone does not prove platform eligibility.
+
+Provider preparation returns persisted checkpoints. Public mutations require a saved `publish_intent` before execution. These providers have no application idempotency key: an uncertain response or recovery at that intent requires reconciliation. Do not blindly retry and risk duplicate posts. Facebook Reels wait for the publishing phase to complete. Instagram and Threads reuse stored containers and poll processing status. Threads long-lived tokens support refresh while unexpired; revoked or expired connections require owner reconnection.
+
+Implementation follows Meta's official [Facebook collection](https://www.postman.com/meta/facebook/documentation/r56bjfd/facebook-api), [Instagram collection](https://www.postman.com/meta/instagram/documentation/6yqw8pt/instagram-api), and [Threads collection](https://www.postman.com/meta/threads/documentation/dht3nzz/threads-api). Live account acceptance remains a separate gate check requiring the owner's configured apps and consent.
