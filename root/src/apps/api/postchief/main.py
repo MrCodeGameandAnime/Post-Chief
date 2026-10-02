@@ -7,6 +7,8 @@ from fastapi.responses import JSONResponse
 from postchief.campaigns.routes import router as campaigns_router
 from postchief.assets import router as assets_router
 from sqlalchemy.exc import IntegrityError
+from postchief.providers.routes import router as providers_router
+from provider_contracts import ProviderError, ErrorReason
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
@@ -31,6 +33,7 @@ def create_app(settings: Settings | None = None):
     app.include_router(webhooks, prefix="/api")
     app.include_router(campaigns_router, prefix="/api")
     app.include_router(assets_router, prefix="/api")
+    app.include_router(providers_router, prefix="/api")
 
     @app.exception_handler(GitHubError)
     async def github_error(request, error):
@@ -39,6 +42,11 @@ def create_app(settings: Settings | None = None):
     @app.exception_handler(IntegrityError)
     async def integrity_error(request,error):
         return JSONResponse(status_code=409,content={"detail":"A referenced record changed; reload and retry"})
+
+    @app.exception_handler(ProviderError)
+    async def provider_error(request,error):
+        status = 429 if error.reason == ErrorReason.RATE_LIMITED else (503 if error.retryable else 422)
+        return JSONResponse(status_code=status,content={"detail":error.message,"error":error.to_dict()})
 
     @app.get("/api/health")
     def health():

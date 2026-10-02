@@ -48,16 +48,24 @@ class PublishResult:
     state: dict = field(default_factory=dict)
 
 
+class PublicationPending(Exception):
+    def __init__(self, state: dict, retry_after: int = 30):
+        self.state, self.retry_after = state, retry_after
+        super().__init__("Provider is processing media")
+
+
 @dataclass
 class Media:
     path: str
     mime_type: str
     byte_size: int
     alt_text: str = ""
+    url: str | None = None
 
 
 class SocialProvider(Protocol):
     capabilities: Capabilities
+    def validate(self, body: str, media: list[Media]) -> None: ...
     async def publish(self, credentials: dict, body: str, media: list[Media], key: str, state: dict) -> PublishResult: ...
     async def get_post_metrics(self, credentials: dict, provider_id: str) -> dict: ...
     async def delete(self, credentials: dict, provider_id: str) -> None: ...
