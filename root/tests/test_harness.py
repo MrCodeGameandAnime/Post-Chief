@@ -24,3 +24,11 @@ def test_temporary_state_is_under_designated_runtime_directory(tmp_path,pytestco
     root=Path(pytestconfig.rootpath).resolve()
     assert tmp_path.resolve().is_relative_to(root)
     assert not tmp_path.resolve().is_relative_to(root/'src')
+
+
+def test_application_settings_do_not_inherit_live_environment(monkeypatch,request):
+    monkeypatch.setenv('PUBLIC_URL','https://live.example.test')
+    monkeypatch.setenv('META_CLIENT_SECRET','live-secret-must-not-reach-tests')
+    app=request.getfixturevalue('app')
+    assert app.state.settings.public_url=='http://localhost:8000'
+    assert app.state.settings.meta_client_secret.get_secret_value()==''

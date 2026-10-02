@@ -1,4 +1,5 @@
 import io
+from urllib.parse import urlsplit
 from datetime import datetime,timedelta,timezone
 import jwt
 from PIL import Image
@@ -16,7 +17,8 @@ def test_signed_media_rejects_wrong_asset_expiration_and_tampering(client,app):
         campaign=Campaign(org_id=row.org_id,title='Photo',body='Photo',asset_ids=[row.id],overrides={})
         account=SocialAccount(org_id=row.org_id,provider='instagram',remote_id='ig',name='IG')
         _,media=media_for_campaign(db,campaign,account,app.state.settings)
-    url=media[0].url.split('http://localhost:8000',1)[1]
+    parsed=urlsplit(media[0].url)
+    url=parsed.path+'?'+parsed.query
     assert client.get(url).content==data.getvalue()
     assert client.get(url.replace(asset['id'],'other')).status_code==403
     token=jwt.encode({'sub':asset['id'],'org':row.org_id,'aud':'post-chief-media','exp':datetime.now(timezone.utc)-timedelta(seconds=1)},app.state.settings.signing_key.get_secret_value(),algorithm='HS256')

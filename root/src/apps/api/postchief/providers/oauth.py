@@ -113,14 +113,21 @@ def authorize(provider:str,actor:Actor=Depends(require_owner),db:Session=Depends
 
 
 @router.get('/connections/oauth/{provider}/callback')
-async def callback(provider:str,state:str,request:Request,code:str|None=None,error:str|None=None,
+async def callback(provider:str,request:Request,state:str|None=None,code:str|None=None,error:str|None=None,error_code:str|None=None,
                    actor:Actor=Depends(require_owner),db:Session=Depends(get_db),service=Depends(get_oauth_service)):
+    rejected=bool(error or error_code)
+    rejection='Authorization failed; check the provider app permissions and OAuth settings, then start again from Post Chief Connections'
+    # Meta can reject app configuration before returning state. Report only a
+    # fixed diagnostic: untrusted provider messages never become displayed text.
+    # Missing state can never authorize an exchange or mutate a connection.
+    if not state:
+        raise HTTPException(400,rejection if rejected else 'OAuth state is missing; start connection again from Post Chief Connections')
     consumed=db.execute(update(OAuthState).where(OAuthState.token_hash==digest(state),OAuthState.provider==provider,
         OAuthState.actor_id==actor.id,OAuthState.org_id==actor.org_id,OAuthState.consumed==False,
         OAuthState.expires_at>datetime.now(timezone.utc)).values(consumed=True))
     db.commit()
     if consumed.rowcount!=1: raise HTTPException(400,'OAuth state is invalid, expired or already used')
-    if error or not code: raise HTTPException(400,'Authorization was declined; start connection again')
+    if rejected or not code: raise HTTPException(400,rejection)
     accounts=await service.exchange(provider,code)
     connected=[]
     for account in accounts:

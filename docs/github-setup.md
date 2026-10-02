@@ -1,6 +1,6 @@
 # GitHub App setup
 
-Create a private GitHub App for Post Chief. Set its homepage to the dashboard and its webhook URL to `PUBLIC_URL/api/webhooks/github`. Select repository **Contents: read/write** and **Metadata: read**. Subscribe to installation and installation-repository events. Generate a private key and a strong webhook secret. Store the App ID, app slug, PEM key and webhook secret only in `root/.env` or the deployment secret manager.
+Create a private GitHub App for Post Chief. Set its homepage to the dashboard and its webhook URL to `PUBLIC_URL/api/webhooks/github`. Select repository **Contents: read/write** and **Metadata: read**. Keep webhooks active; installation and installation-repository events are delivered automatically and have no manual subscription checkboxes. Generate a private key and a strong webhook secret. Store the App ID, app slug, PEM key and webhook secret only in `root/.env` or the deployment secret manager.
 
 Post Chief reduces installation token permissions for each operation. Repository listing and reads use read-only tokens; content access is further restricted to the specific repository ID. Writes request a token with write access only to the selected social workspace. Source repository tokens remain read-only, even when the installed App has broader permissions.
 

@@ -48,6 +48,26 @@ def test_oauth_expired_state_rejected_before_provider_call(client,app):
     assert service.calls==0
 
 
+def test_meta_configuration_error_without_state_is_readable_and_never_exchanges(client,app):
+    service=FakeOAuth();app.dependency_overrides[get_oauth_service]=lambda:service
+    response=client.get('/api/connections/oauth/meta/callback',params={'error_code':'100','error_message':'Invalid Scopes: private-untrusted-message'})
+    assert response.status_code==400
+    assert 'permissions' in response.json()['detail']
+    assert 'private-untrusted-message' not in response.text
+    assert service.calls==0
+    with app.state.sessions() as db:assert db.scalar(select(SocialAccount)) is None
+
+
+def test_oauth_success_still_requires_state_and_error_cannot_exchange_code(client,app):
+    service=FakeOAuth();app.dependency_overrides[get_oauth_service]=lambda:service
+    assert client.get('/api/connections/oauth/meta/callback',params={'code':'code'}).status_code==400
+    url=client.post('/api/connections/oauth/meta/authorize').json()['url']
+    state=parse_qs(urlparse(url).query)['state'][0]
+    response=client.get('/api/connections/oauth/meta/callback',params={'state':state,'code':'code','error_code':'100'})
+    assert response.status_code==400 and service.calls==0
+    with app.state.sessions() as db:assert db.scalar(select(OAuthState)).consumed is True
+
+
 @pytest.mark.asyncio
 async def test_meta_exchange_discovers_pages_and_linked_instagram_using_page_tokens(app):
     calls=[]

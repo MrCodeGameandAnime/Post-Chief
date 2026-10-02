@@ -13,7 +13,12 @@ from postchief.auth import bootstrap_owner
 
 
 @pytest.fixture
-def app(tmp_path):
+def app(tmp_path,monkeypatch):
+    # _env_file=None disables dotenv only; isolate live process settings too.
+    settings_names={name.casefold() for name in Settings.model_fields}
+    for name in tuple(os.environ):
+        if name.casefold() in settings_names:
+            monkeypatch.delenv(name,raising=False)
     database_url=f"sqlite:///{tmp_path}/test.db"
     admin_engine=None
     schema=None
