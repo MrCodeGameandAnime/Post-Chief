@@ -13,7 +13,7 @@ def test_meta_authorization_requests_business_page_discovery_permission(app):
     settings=app.state.settings.model_copy(update={'meta_client_id':'test-app','meta_client_secret':SecretStr('test-secret')})
     query=parse_qs(urlparse(OAuthService(None,settings).authorization_url('meta','test-state')).query)
     assert set(query['scope'][0].split(','))=={
-        'business_management','pages_show_list','pages_read_engagement','pages_manage_posts',
+        'business_management','pages_show_list','pages_read_engagement','pages_read_user_content','pages_manage_posts',
         'instagram_basic','instagram_content_publish','instagram_manage_insights'}
     assert query['state']==['test-state']
 

@@ -2,7 +2,9 @@
 
 ## Status
 
-Gates 1–11 are implemented and pushed. Gate 12 has offline acceptance coverage; **live acceptance is paused at the owner's request** while Meta, GitHub App and public HTTPS are configured. The chosen live platform is Instagram. No fixture result is a live publication, and Metricool retirement is not yet accepted.
+Gates 1–11 are implemented and pushed. Gate 12 has offline acceptance coverage and **partial live acceptance**. The owner resumed live delivery by reviewing and scheduling a JPEG campaign for October 2, 2026, 09:17 America/New_York on Instagram and Facebook. Stored publication records completed at 09:17:43, and the owner supplied screenshots of the image visible on both platforms. Native Instagram analytics collected at 09:18:10 preserve actual zero likes and comments. Facebook reactions/comments analytics require the additional `pages_read_user_content` permission and fresh consent.
+
+Gate 12 remains incomplete until once-only publication confirmation, reviewed GitHub feedback, an unchanged follow-up preview and owner operational acceptance are recorded. Metricool retirement is not yet accepted. Non-secret live IDs, permalink and timing evidence are in the sibling overnight log. Fixture results remain separate from live evidence.
 
 `root/tests/test_dogfood.py` exercises owner authentication, JPEG upload, campaign creation, future scheduling, immediate dispatch, the native Instagram container adapter, persisted processing and publish-intent checkpoints, duplicate execution protection, native analytics with a real zero, and reviewed GitHub feedback with an idempotent rerun. All external responses are fixtures. Separate Celery tests verify actual Redis queue delivery; both suites run on SQLite and PostgreSQL in CI.
 

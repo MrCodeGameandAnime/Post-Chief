@@ -24,7 +24,7 @@ class OAuthService:
         if provider=='meta':
             app,secret=s.meta_client_id,s.meta_client_secret.get_secret_value()
             endpoint=f'https://www.facebook.com/{s.meta_api_version}/dialog/oauth'
-            scope='business_management,pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish,instagram_manage_insights'
+            scope='business_management,pages_show_list,pages_read_engagement,pages_read_user_content,pages_manage_posts,instagram_basic,instagram_content_publish,instagram_manage_insights'
         elif provider=='threads':
             app,secret=s.threads_client_id,s.threads_client_secret.get_secret_value()
             endpoint='https://threads.net/oauth/authorize'
