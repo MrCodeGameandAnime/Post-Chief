@@ -14,6 +14,7 @@ from postchief.auth import Actor, require_owner
 from postchief.db import get_db
 from postchief.models import Publication, SocialAccount, AuditEvent
 from postchief.campaigns.schemas import CampaignCreate
+from postchief.campaigns.external import external_posts
 from postchief.campaigns.service import get_campaign, check_refs, audit, serialize_campaign, sync_assets
 from postchief.publishing.media import media_for_campaign
 from postchief.providers.registry import get_provider
@@ -47,6 +48,8 @@ def add_destination(campaign_id: str, data: Destination, request: Request,
         SocialAccount.org_id == actor.org_id, SocialAccount.active.is_(True)))
     if not account:
         raise HTTPException(404, 'Connected account not found')
+    if account.provider == 'x' and external_posts(db, row):
+        raise HTTPException(409, 'An X handoff is already recorded; create a separate campaign for another X post')
     existing_providers = {db.get(SocialAccount, p.account_id).provider for p in pubs}
     original = row.overrides.get(account.provider, {}).get('body', row.body)
     if account.provider in existing_providers and data.body != original:

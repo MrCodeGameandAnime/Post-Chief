@@ -24,7 +24,8 @@ export function AddDestination({
 }) {
   const available = accounts.filter(
     (a) =>
-      a.active && !campaign.publications.some((p) => p.account_id === a.id),
+      a.active && !campaign.publications.some((p) => p.account_id === a.id) &&
+      !(a.provider === "x" && campaign.external_posts?.length),
   );
   const [accountId, setAccountId] = useState("");
   const [body, setBody] = useState(campaign.body);

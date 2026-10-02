@@ -7,6 +7,7 @@ from postchief.auth import Actor, current_actor, require_scope
 from postchief.db import get_db
 from postchief.models import Campaign, Publication, SocialAccount
 from postchief.campaigns.schemas import CampaignCreate, CampaignPatch, aware
+from postchief.campaigns.external import external_posts
 from postchief.campaigns.service import get_campaign, check_refs, create_campaign, audit, serialize_campaign, serialize_publication, sync_assets
 
 router = APIRouter(tags=["Campaigns"])
@@ -64,7 +65,9 @@ def update(campaign_id: str, data: CampaignPatch, actor: Actor = Depends(current
         validated = CampaignCreate.model_validate(merged)
     except ValidationError:
         raise HTTPException(422, "Invalid campaign changes") from None
-    check_refs(db, actor.org_id, validated)
+    accounts = check_refs(db, actor.org_id, validated)
+    if external_posts(db, row) and any(account.provider == 'x' for account in accounts):
+        raise HTTPException(409, 'An X handoff is already recorded; create a separate campaign for another X post')
     for key in ("title","body","asset_ids","scheduled_at","github_path"):
         setattr(row, key, getattr(validated,key))
     row.overrides = {k:v.model_dump(exclude_none=True) for k,v in validated.overrides.items()}
@@ -90,7 +93,7 @@ def delete_draft(campaign_id: str, actor: Actor = Depends(current_actor), db: Se
     require_scope(actor, "campaigns:write")
     row = get_campaign(db, actor.org_id, campaign_id, lock=True)
     protected = db.scalar(select(Publication.id).where(Publication.campaign_id == row.id, (Publication.status.in_(["published","processing"])) | (Publication.attempts > 0)).limit(1))
-    if row.status != "draft" or protected:
+    if row.status != "draft" or protected or external_posts(db, row):
         raise HTTPException(409, "Only unpublished drafts can be deleted")
     db.execute(delete(Publication).where(Publication.campaign_id == row.id))
     db.delete(row)

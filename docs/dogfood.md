@@ -18,12 +18,13 @@ The accepted Facebook/Instagram/Threads workflow does not require Metricool. Ret
 - Implemented after acceptance: attempted campaign text is labelled Original master copy, with a note that provider overrides apply and later native edits are not synced back. GitHub feedback preserves the original saved campaign caption.
 - Implemented and used live: add a connected destination to an attempted campaign, save its draft paused, and explicitly publish only that destination. The owner used this flow for Threads without republishing Facebook or Instagram. Paused, unattempted destination copy and media remain editable.
 - Implemented, with live acceptance pending: load current Facebook feed text, review a specific replacement, and apply it with a separate edit audit. The owner has not supplied and applied a reviewed replacement through this flow. Instagram captions use the native editing link. Original campaign copy and publication history remain available.
+- Implemented, with owner acceptance deferred: X direct OAuth/publishing plus a manual caption/image handoff without API credits. Manual results are owner-reported audit records, retain their media and appear in reviewed feedback with unavailable native metrics. See the consolidated [MVP final pass](mvp-final-pass.md).
 
 ## Remaining acceptance work
 
 - Inspect the feedback dialog and maintenance controls on a mobile viewport. Desktop screenshots establish the feedback dialog layout; mobile visual verification is still pending.
 - Review an intended Facebook feed-text replacement before applying a live edit. Check the resulting native text and separate edit history without recreating the post.
-- Configure and authorize X, the next core network, before reviewing intended live content. Bluesky and LinkedIn are deferred optional integrations; the owner does not have a Bluesky account.
+- Accept the manual X handoff, or configure and authorize direct X before reviewing intended API delivery. Billing and consent are owner actions deferred to the final pass. Bluesky and LinkedIn remain optional.
 - Create an encrypted backup outside the deployment host and rehearse recovery using it. The synthetic PostgreSQL/media recovery rehearsal does not establish that production backups exist.
 
 These checks remain separate from the accepted Facebook/Instagram/Threads publication loop. They do not require another copy of the accepted campaign to be published.

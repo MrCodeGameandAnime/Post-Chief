@@ -6,6 +6,7 @@ from postchief.auth import Actor
 from postchief.models import Campaign, Publication, Asset, SocialAccount, AuditEvent, CampaignAsset, AnalyticsSnapshot
 from postchief.publishing.links import instagram_permalink
 from postchief.campaigns.schemas import CampaignCreate
+from postchief.campaigns.external import external_posts
 
 
 def iso(value):
@@ -50,6 +51,8 @@ def sync_assets(db: Session, row: Campaign):
     ids = set(row.asset_ids)
     for override in row.overrides.values():
         ids.update(override.get("asset_ids") or [])
+    for post in external_posts(db, row):
+        ids.update(post.get('asset_ids', []))
     db.add_all(CampaignAsset(org_id=row.org_id,campaign_id=row.id,asset_id=asset_id) for asset_id in ids)
 
 
@@ -72,7 +75,11 @@ def serialize_publication(db: Session, row: Publication):
 
 def serialize_campaign(db: Session, row: Campaign):
     publications = list(db.scalars(select(Publication).where(Publication.campaign_id == row.id, Publication.org_id == row.org_id).order_by(Publication.created_at)))
-    return {"id":row.id,"title":row.title,"body":row.body,"asset_ids":row.asset_ids,"overrides":row.overrides,"scheduled_at":iso(row.scheduled_at),"created_at":iso(row.created_at),"status":row.status,"revision":row.revision,"github_path":row.github_path,"publications":[serialize_publication(db,p) for p in publications]}
+    result = {"id":row.id,"title":row.title,"body":row.body,"asset_ids":row.asset_ids,"overrides":row.overrides,"scheduled_at":iso(row.scheduled_at),"created_at":iso(row.created_at),"status":row.status,"revision":row.revision,"github_path":row.github_path,"publications":[serialize_publication(db,p) for p in publications]}
+    reported = external_posts(db, row)
+    if reported:
+        result['external_posts'] = reported
+    return result
 
 
 def create_campaign(db: Session, actor: Actor, data: CampaignCreate):

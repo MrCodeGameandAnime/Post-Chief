@@ -7,6 +7,7 @@ from postchief.github.routes import router as github_router, webhooks
 from postchief.github.service import GitHubError
 from fastapi.responses import JSONResponse
 from postchief.campaigns.routes import router as campaigns_router
+from postchief.campaigns.handoff import router as handoff_router
 from postchief.assets import router as assets_router
 from sqlalchemy.exc import IntegrityError
 from postchief.providers.routes import router as providers_router
@@ -48,6 +49,7 @@ def create_app(settings: Settings | None = None):
     app.include_router(github_router, prefix="/api")
     app.include_router(webhooks, prefix="/api")
     app.include_router(campaigns_router, prefix="/api")
+    app.include_router(handoff_router, prefix="/api")
     app.include_router(assets_router, prefix="/api")
     app.include_router(providers_router, prefix="/api")
     app.include_router(oauth_router, prefix="/api")

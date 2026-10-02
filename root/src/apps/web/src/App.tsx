@@ -21,6 +21,7 @@ import "./styles.css";
 import { Analytics } from "./Analytics";
 import { Agent } from "./Agent";
 import { Feedback } from "./Feedback";
+import { XHandoff } from "./XHandoff";
 import {
   AddDestination,
   DestinationDelivery,
@@ -301,7 +302,7 @@ export function App() {
               {page === "Content" && (
                 <CampaignList rows={rows} open={setEditing} />
               )}
-              {page === "Analytics" && <Analytics run={run} busy={busy} />}
+              {page === "Analytics" && <Analytics run={run} busy={busy} campaigns={campaigns.data?.pages.flat() ?? []} />}
               {page === "Agent" && <Agent run={run} busy={busy} />}
               {page === "Planner" && <Planner rows={rows} open={setEditing} />}
               {page === "Assets" && (
@@ -365,6 +366,9 @@ function CampaignList({
               <span className="tag" key={pub.id}>
                 {pub.provider} · {pub.status}
               </span>
+            ))}
+            {row.external_posts?.map((post) => (
+              <span className="tag" key={post.id}>X · reported published</span>
             ))}
             <span className={"status " + row.status}>{row.status}</span>
           </div>
@@ -694,6 +698,8 @@ function Editor({
         <div className="delivery">
           <h3>Delivery</h3>
           <Feedback campaignId={current.id} run={run} busy={busy} />
+          <XHandoff key={campaign?.id} campaign={current} assets={assets}
+            run={run} busy={busy} stale={revisionChanged} close={close} />
           <p className="status">{current.status}</p>
           <p>{campaignDate(current)}</p>
           {!revisionChanged &&
@@ -1040,7 +1046,7 @@ function Connections({
           <article className="panel" key={provider}>
             <h3>{provider === "x" ? "X" : provider}</h3>
             {provider === "x" && (
-              <p className="muted">X API requests use paid credits. Metrics refresh only when requested.</p>
+              <p className="muted">X API requests use paid credits. Metrics refresh only when requested. For a handoff without API fees, open a saved campaign and use X · manual handoff under Delivery.</p>
             )}
             {accounts
               .filter((a) => a.provider === provider)

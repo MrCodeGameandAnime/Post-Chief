@@ -16,6 +16,12 @@ Live connection and publication still require the owner's Bluesky account and in
 
 ## X (current priority)
 
+### Handoff without API credits
+
+Saved campaigns expose **X · manual handoff** under Delivery even without X credentials. Copy the platform-specific caption, download selected JPEG/PNG/WebP images, post in X and record the URL and actual publication time. The record is explicitly owner-reported, is never dispatched by workers and has no native analytics collection. Existing automated publication outcomes are unchanged. The record and unavailable metrics flow into the same reviewed GitHub feedback. One campaign cannot use both direct and manual X delivery. See [final-pass instructions and limitations](mvp-final-pass.md).
+
+### Direct API integration
+
 The owner's core networks are Facebook, Instagram, Threads and X. Bluesky and LinkedIn remain optional follow-ups. X live account acceptance has not been performed.
 
 Configure `X_CLIENT_ID` and `X_CLIENT_SECRET` with the **OAuth 2.0** credentials for a confidential Web App in the X Developer Console. These are not the API key/secret or an app-only bearer token. Enable user authentication and register the exact callback `PUBLIC_URL/api/connections/oauth/x/callback`, plus the dashboard website URL. Start consent with **Connect X** in Connections. Requested scopes are `tweet.read tweet.write users.read media.write offline.access`. State is owner/organization-bound, expires after ten minutes and is single-use. PKCE uses S256 with a server-keyed verifier derived for each random state; token exchange uses HTTP Basic client authentication. Tokens stay encrypted on the server.

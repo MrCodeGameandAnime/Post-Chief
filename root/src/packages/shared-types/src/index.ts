@@ -44,6 +44,17 @@ export interface Campaign {
   status: string;
   revision: number;
   publications: Publication[];
+  external_posts?: ExternalPost[];
+}
+export interface ExternalPost {
+  id: string;
+  provider: "x";
+  url: string;
+  body: string;
+  asset_ids: string[];
+  published_at: string;
+  delivery: "manual";
+  verification: "owner_reported";
 }
 export interface Asset {
   id: string;

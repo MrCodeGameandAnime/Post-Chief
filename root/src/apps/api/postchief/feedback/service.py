@@ -35,6 +35,10 @@ def report(db,campaign):
         metrics.append({'publication_id':pub['id'],'provider':pub['provider'],'account':pub['account_name'],
             'collected_at':iso(row.created_at) if row else None,'normalized':row.metrics.get('normalized',{}) if row else {},
             'semantics':row.metrics.get('semantics',{}) if row else {},'available':row is not None})
+    for post in data.get('external_posts', []):
+        metrics.append({'external_post_id': post['id'], 'provider': post['provider'],
+            'available': False, 'normalized': {}, 'semantics': {},
+            'verification': 'owner_reported', 'reason': 'Manual handoff; native metrics were not collected'})
     # Provider state/credentials and signed media URLs are deliberately excluded.
     return data,metrics
 
@@ -52,6 +56,9 @@ async def preview(db,campaign,connection,service):
     blocks={path:'## Post Chief publication record\n\n'+fenced(data),
         'docs/CONTENT_LEDGER.md':'## Campaign '+campaign.id+'\n\n'+fenced({key:data[key] for key in ('id','title','status','scheduled_at','publications')}),
         'docs/ANALYTICS.md':'## Campaign '+campaign.id+' · native metrics\n\n'+fenced(metrics)}
+    if data.get('external_posts'):
+        ledger = {key:data[key] for key in ('id','title','status','scheduled_at','publications','external_posts')}
+        blocks['docs/CONTENT_LEDGER.md'] = '## Campaign '+campaign.id+'\n\n'+fenced(ledger)
     snapshot=await service.feedback_snapshot(connection.installation_id,connection.workspace,list(blocks))
     files={path:merge_block(snapshot['files'][path]['content'],campaign.id,block) for path,block in blocks.items()}
     digest=hashlib.sha256(json.dumps(files,sort_keys=True,ensure_ascii=False).encode()).hexdigest()

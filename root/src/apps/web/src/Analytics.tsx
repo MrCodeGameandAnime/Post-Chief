@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { request, send } from "../../../packages/api-client/src";
+import type { Campaign } from "../../../packages/shared-types/src";
 
 interface Snapshot {
   id: string;
@@ -21,7 +22,7 @@ interface Row {
 }
 type Run = (action: () => Promise<unknown>) => Promise<boolean>;
 
-export function Analytics({ run, busy }: { run: Run; busy: boolean }) {
+export function Analytics({ run, busy, campaigns = [] }: { run: Run; busy: boolean; campaigns?: Campaign[] }) {
   const [selected, setSelected] = useState<string | null>(null);
   const data = useInfiniteQuery({
     queryKey: ["analytics"],
@@ -46,6 +47,13 @@ export function Analytics({ run, busy }: { run: Run; busy: boolean }) {
       </p>
       {data.isPending && <p>Loading analytics…</p>}
       {data.error && <p role="alert">{data.error.message}</p>}
+      {campaigns.flatMap((campaign) => (campaign.external_posts ?? []).map((post) => (
+        <article className="panel" key={post.id}>
+          <h3>{campaign.title} · X manual handoff</h3>
+          <p>Published · reported by you. Native metrics are unavailable for this handoff.</p>
+          <a href={post.url} target="_blank" rel="noreferrer">View X post ↗</a>
+        </article>
+      )))}
       {!data.isPending && !rows.length && (
         <div className="empty">
           <h3>Performance starts with a published post.</h3>
