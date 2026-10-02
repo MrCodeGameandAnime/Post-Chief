@@ -10,10 +10,10 @@ This accepted Facebook/Instagram workflow does not require Metricool. Retiring M
 
 ## Follow-up improvements
 
-- Implemented after acceptance: bounded GitHub review dialog with file tabs, readable diffs and a change summary. Browser visual verification remains pending because the local browser preview could not attach.
-- Implemented after acceptance: validated Instagram permalinks from native analytics, including a stored-snapshot fallback for existing publications. The originally accepted GitHub record contains a null URL; updating that external record requires reviewing and writing a fresh preview.
-- Explain publication attempt counts as adapter preparation stages and distinguish them from public post counts.
-- Make the original published caption distinguishable from later owner edits made directly on a platform; the accepted feedback records the original campaign caption.
+- Implemented after acceptance: bounded GitHub review dialog with file tabs, readable diffs and a change summary. Owner screenshots confirm the desktop layout, successful reviewed write and subsequent zero-change preview. Mobile visual verification remains pending.
+- Implemented after acceptance: validated Instagram permalinks from native analytics, including a stored-snapshot fallback for existing publications. The owner reviewed and wrote the permalink update in commit `50c4d19cc0d8b0691f7d46d68ba50a08d1b3d4ae`; the next preview reported zero changes.
+- Implemented after acceptance: delivery status is prominent, with worker run counts and their preparation/retry meaning under Delivery details. Counts are retained in API and GitHub records.
+- Implemented after acceptance: attempted campaign text is labelled Original master copy, with a note that provider overrides apply and later native edits are not synced back. GitHub feedback preserves the original saved campaign caption.
 
 `root/tests/test_dogfood.py` exercises owner authentication, JPEG upload, campaign creation, future scheduling, immediate dispatch, the native Instagram container adapter, persisted processing and publish-intent checkpoints, duplicate execution protection, native analytics with a real zero, and reviewed GitHub feedback with an idempotent rerun. All external responses are fixtures. Separate Celery tests verify actual Redis queue delivery; both suites run on SQLite and PostgreSQL in CI.
 

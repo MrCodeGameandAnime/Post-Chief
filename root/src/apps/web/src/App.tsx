@@ -483,6 +483,7 @@ function Editor({
   const [media, setMedia] = useState(campaign?.asset_ids ?? []);
   const [overrides, setOverrides] = useState(campaign?.overrides ?? {});
   const [schedule, setSchedule] = useState("");
+  const attempted = campaign?.publications.some((p) => p.attempts > 0) ?? false;
   const editable =
     !campaign ||
     (campaign.status === "draft" &&
@@ -523,7 +524,7 @@ function Editor({
           />
         </label>
         <label>
-          Master copy
+          {attempted ? "Original master copy" : "Master copy"}
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
@@ -532,6 +533,13 @@ function Editor({
             disabled={!editable}
           />
         </label>
+        {attempted && (
+          <p className="muted">
+            This is the original campaign copy saved for delivery. Provider copy
+            overrides apply to their destinations. Edits made directly on a
+            platform aren’t synced back to this record.
+          </p>
+        )}
         <fieldset disabled={!editable}>
           <legend>Destinations</legend>
           {accounts
@@ -718,14 +726,22 @@ function Editor({
               <strong>
                 {pub.provider} · {pub.account_name}
               </strong>
-              <p>
-                {pub.status} · {pub.attempts} attempts
-              </p>
+              <p>{pub.status}</p>
               {pub.url && (
                 <a href={pub.url} target="_blank" rel="noreferrer">
                   View published post ↗
                 </a>
               )}
+              <details>
+                <summary>Delivery details</summary>
+                <p>
+                  {pub.attempts} delivery {pub.attempts === 1 ? "run" : "runs"}
+                </p>
+                <p className="muted">
+                  Runs include media preparation, processing checks and retries.
+                  Multiple runs can produce a single published post.
+                </p>
+              </details>
               {pub.error && (
                 <p className="notice error">
                   {pub.error.message} · {pub.error.action_required}

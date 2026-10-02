@@ -135,3 +135,99 @@ test("shows campaign once, its destinations, and a planner view", async () => {
   expect(screen.getByRole("button", { name: "Week" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "List" })).toBeTruthy();
 });
+
+test.each([
+  {
+    status: "draft",
+    publicationStatus: "pending",
+    attempts: 0,
+    count: "0 delivery runs",
+  },
+  {
+    status: "failed",
+    publicationStatus: "failed",
+    attempts: 1,
+    count: "1 delivery run",
+  },
+  {
+    status: "published",
+    publicationStatus: "published",
+    attempts: 3,
+    count: "3 delivery runs",
+  },
+])(
+  "explains delivery runs and retained copy for $status",
+  async ({ status, publicationStatus, attempts, count }) => {
+    const campaign = {
+      id: "campaign",
+      title: "Delivery example",
+      body: "Original caption",
+      status,
+      revision: 1,
+      asset_ids: [],
+      overrides: {},
+      scheduled_at: null,
+      publications: [
+        {
+          id: "pub",
+          account_id: "account",
+          provider: "instagram",
+          account_name: "404.builds.dev",
+          status: publicationStatus,
+          attempts,
+          error: null,
+          url:
+            status === "published"
+              ? "https://www.instagram.com/p/example/"
+              : null,
+        },
+      ],
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async (url: string) =>
+          new Response(
+            JSON.stringify(
+              url.endsWith("/auth/me")
+                ? { email: "owner@example.test", csrf: "csrf" }
+                : url.endsWith("/campaigns")
+                  ? [campaign]
+                  : [],
+            ),
+          ),
+      ),
+    );
+    mount();
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Delivery example" }),
+    );
+    expect(await screen.findByText("Delivery details")).toBeTruthy();
+    await userEvent.click(screen.getByText("Delivery details"));
+    expect(screen.getByText(count)).toBeTruthy();
+    expect(
+      screen.getByText(/Multiple runs can produce a single published post/),
+    ).toBeTruthy();
+    const copy = screen.getByLabelText(
+      attempts ? "Original master copy" : "Master copy",
+    ) as HTMLTextAreaElement;
+    expect(copy.value).toBe("Original caption");
+    expect(copy.disabled).toBe(attempts > 0);
+    if (attempts)
+      expect(
+        screen.getByText(
+          /Edits made directly on a platform aren’t synced back/,
+        ),
+      ).toBeTruthy();
+    else
+      expect(
+        screen.queryByText(/Edits made directly on a platform/),
+      ).toBeNull();
+    if (status === "published")
+      expect(
+        screen
+          .getByRole("link", { name: "View published post ↗" })
+          .getAttribute("href"),
+      ).toBe("https://www.instagram.com/p/example/");
+  },
+);
