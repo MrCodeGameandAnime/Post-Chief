@@ -2,13 +2,22 @@
 
 ## Status
 
-Gates 1–11 are implemented and pushed. Gate 12 has offline acceptance coverage and **partial live acceptance**. The owner resumed live delivery by reviewing and scheduling a JPEG campaign for October 2, 2026, 09:17 America/New_York on Instagram and Facebook. Stored publication records completed at 09:17:43, and the owner supplied screenshots of the image visible on both platforms. Native Instagram analytics collected at 09:18:10 preserve actual zero likes and comments. Facebook reactions/comments analytics require the additional `pages_read_user_content` permission and fresh consent.
+Gates 1–11 are implemented and pushed. **Gate 12 MVP acceptance is complete for Facebook and Instagram**, accepted by the owner on October 2, 2026. The owner reviewed and scheduled a JPEG campaign for 09:17 America/New_York. Both publication records completed at 09:17:43, and the owner supplied screenshots of the image visible on both platforms and confirmed the workflow after the once-only verification request. Native Instagram analytics collected at 09:18:10 preserve actual zero likes and comments. After granting `pages_read_user_content` and completing fresh consent, Facebook analytics collected at 09:50:11 preserve actual zero reactions and comments.
 
-Gate 12 remains incomplete until once-only publication confirmation, reviewed GitHub feedback, an unchanged follow-up preview and owner operational acceptance are recorded. Metricool retirement is not yet accepted. Non-secret live IDs, permalink and timing evidence are in the sibling overnight log. Fixture results remain separate from live evidence.
+The reviewed GitHub feedback was written to `MrCodeGameandAnime/404-builds-social` on `main` in commit `95517c87c219f5e9d6c308bf0ce6626342c73a17`: the post record, content ledger and analytics were committed together. A fresh preview returned `unchanged=true` with the same digest. The owner accepted the create, schedule, publish, status, analytics and GitHub feedback workflow for MVP. Non-secret live IDs, permalink and timing evidence are in the sibling overnight log. Fixture results remain separate from live evidence.
+
+This accepted Facebook/Instagram workflow does not require Metricool. Retiring Metricool's other schedules and integrations is a separate owner decision; no history, schedules or integrations were removed. Other provider implementations have automated coverage but were not included in this live acceptance.
+
+## Follow-up improvements
+
+- Replace the narrow raw GitHub preview sidebar with a wider review panel, file tabs, readable diffs and a change summary.
+- Include the Instagram permalink in generated publication records. The accepted record contains the provider ID; its `url` is currently null, while the actual permalink was independently recorded in the overnight log.
+- Explain publication attempt counts as adapter preparation stages and distinguish them from public post counts.
+- Make the original published caption distinguishable from later owner edits made directly on a platform; the accepted feedback records the original campaign caption.
 
 `root/tests/test_dogfood.py` exercises owner authentication, JPEG upload, campaign creation, future scheduling, immediate dispatch, the native Instagram container adapter, persisted processing and publish-intent checkpoints, duplicate execution protection, native analytics with a real zero, and reviewed GitHub feedback with an idempotent rerun. All external responses are fixtures. Separate Celery tests verify actual Redis queue delivery; both suites run on SQLite and PostgreSQL in CI.
 
-## Setup before resuming live acceptance
+## Setup for repeating live acceptance
 
 1. Configure secrets locally in `root/.env`: Meta App ID/secret and GitHub App ID/slug/PEM/webhook secret. Keep the existing signing/encryption keys. Never send credentials in chat or commit them.
 2. Expose the deployment through public HTTPS. Set `PUBLIC_URL` and the dashboard's `FRONTEND_URL` to their exact HTTPS origins, and `SECURE_COOKIES=true`. Register the exact Meta callback and GitHub webhook URLs described in [provider setup](providers.md) and [GitHub setup](github-setup.md). Restart services after configuration changes.

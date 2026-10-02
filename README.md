@@ -24,4 +24,4 @@ From `root/`, configure `.env` and run `docker compose up --build -d`. PostgreSQ
 
 Provider account setup and live publishing validation are separate from local tests. Never treat transport fixtures as proof of a successful public post. See [operations](docs/operations.md), [provider setup](docs/providers.md), [GitHub setup](docs/github-setup.md), [agent controls](docs/agents.md) and [feedback](docs/feedback.md).
 
-Gates 1–11 are implemented. [Gate 12 acceptance](docs/dogfood.md) has offline integration coverage; the live Instagram check and Metricool retirement are paused pending owner setup and acceptance. See `docs/plan.md` for the full product plan.
+Gates 1–11 are implemented, and [Gate 12 MVP acceptance](docs/dogfood.md) is complete for the live Facebook and Instagram workflow. The owner verified scheduled publication, native analytics and reviewed GitHub feedback on October 2, 2026. This workflow runs without Metricool; retiring its other schedules and integrations remains a separate owner decision. See `docs/plan.md` for the full product plan.
