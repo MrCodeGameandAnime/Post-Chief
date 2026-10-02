@@ -24,6 +24,20 @@ For a consistent application backup, stop scheduler, worker and API and wait for
 
 Restore first into a separate disposable deployment/database with the original keys and restored media. Keep its scheduler and worker stopped while validating record counts, migration head, owner sign-in, private asset downloads and credential decryption. A restored database may contain jobs that already published after the backup: reconcile those against the providers before enabling dispatch. Restore to production only after this review. Never run test migration downgrades or volume cleanup against production data.
 
+### Automated recovery rehearsal
+
+The PostgreSQL CI job runs `tests/test_recovery.py` against its disposable PostgreSQL 17 service. This opt-in check creates two random databases, migrates and seeds one with synthetic owner, asset, campaign, publication checkpoint and analytics records, takes a custom-format `pg_dump` and media archive, and restores them into the other database/directory. It checks all application table counts, migration head/schema drift, owner sign-in, existing sessions and signed media links, private downloads, zero-valued metrics and encrypted credentials/checkpoints. Negative checks reject a missing media file and incorrect signing/encryption keys. No scheduler, worker or provider request runs during the rehearsal. Both generated databases are removed afterward.
+
+To repeat it locally, start a **separate disposable** PostgreSQL 17 Docker container with a test-only user/password and a loopback port. Use the explicit IPv4 address `127.0.0.1` on Windows to avoid slow `localhost` connection fallback. Set `POST_CHIEF_RECOVERY_DATABASE_URL` to that server's admin database URL and `POST_CHIEF_RECOVERY_CONTAINER` to its container name, then run from `root/`:
+
+```text
+python -m pytest -q tests/test_recovery.py
+```
+
+The container must be the same server as the URL; its PostgreSQL user must be able to create databases and run `pg_dump`/`pg_restore` through local container authentication. With either opt-in variable absent, the test skips. It never reads the deployment's `.env` or defaults to `DATABASE_URL`, and it operates only on its newly generated databases. Remove the disposable container after checking the result.
+
+This rehearsal verifies synthetic recovery mechanics. It does not take a production backup, verify an off-host encrypted copy, or authorize dispatch from restored production data. Those steps still follow the backup and reconciliation procedure above.
+
 ## Credentials and upgrades
 
 Revoke compromised agent keys in Agent and issue new scoped keys. Reconnect provider accounts through Connections to replace their encrypted credentials while preserving account identity/history. GitHub App private keys and OAuth client secrets are deployment configuration; rotate through the provider's supported flow and restart all application services using the updated configuration.

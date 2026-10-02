@@ -23,7 +23,7 @@ jobs:
     services:
       redis:
         image: redis:8-alpine
-        ports: ['6379:6379']
+        ports: ["6379:6379"]
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s --health-timeout 5s --health-retries 20
@@ -33,7 +33,7 @@ jobs:
           POSTGRES_DB: postchief_test
           POSTGRES_USER: postchief
           POSTGRES_PASSWORD: ci-only-password
-        ports: ['5432:5432']
+        ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U postchief -d postchief_test"
           --health-interval 5s --health-timeout 5s --health-retries 20
@@ -48,7 +48,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: '3.12'
+          python-version: "3.12"
           cache: pip
           cache-dependency-path: root/requirements.lock
       - name: Install locked dependencies and application
@@ -83,6 +83,12 @@ jobs:
           alembic upgrade head
         env:
           DATABASE_URL: postgresql+psycopg://postchief:ci-only-password@localhost:5432/postchief_test
+      - name: Rehearse PostgreSQL and media recovery with synthetic data
+        if: matrix.database == 'postgres'
+        run: python -m pytest -q tests/test_recovery.py --junitxml=test-results/recovery.xml
+        env:
+          POST_CHIEF_RECOVERY_DATABASE_URL: postgresql+psycopg://postchief:ci-only-password@127.0.0.1:5432/postchief_test
+          POST_CHIEF_RECOVERY_CONTAINER: ${{ job.services.postgres.id }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
@@ -104,7 +110,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: '24'
+          node-version: "24"
           cache: npm
           cache-dependency-path: root/package-lock.json
       - run: npm ci --no-audit --no-fund
@@ -125,7 +131,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: '3.12'
+          python-version: "3.12"
       - name: Generate ephemeral configuration
         run: |
           python - <<'PY'

@@ -13,6 +13,7 @@ Each publication gets a stable repository record key in the [TID syntax required
 Analytics reports supported engagement counters. Missing counters and unsupported impressions are not invented. Comments and replies are not advertised in this MVP adapter.
 
 Live connection and publication still require the owner's Bluesky account and intended content. Local HTTP contract tests verify requests and recovery behavior; they do not prove live provider access.
+
 ## LinkedIn (Gate 6)
 
 Configure `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, and `LINKEDIN_API_VERSION` (default `202609`). Register `PUBLIC_URL/api/connections/oauth/linkedin/callback`. Enable the OpenID Connect and Share on LinkedIn products. The default `LINKEDIN_SCOPES` is `openid profile w_member_social`; email is unnecessary. Start the same owner OAuth flow with provider `linkedin`. Identity comes from authenticated userinfo, never an unverified ID token. Tokens, optional programmatic refresh tokens and resumable video upload credentials are encrypted.
@@ -27,9 +28,11 @@ Contracts: [Posts](https://learn.microsoft.com/en-us/linkedin/marketing/communit
 
 ## Meta connections (Gate 5)
 
-Configure `META_CLIENT_ID`, `META_CLIENT_SECRET`, and `META_API_VERSION` for a Facebook App using Facebook Login. The owner authorizes Pages; linked professional Instagram accounts are discovered from those Pages. Consumer Instagram accounts are unsupported. Configure a separate Threads App using `THREADS_CLIENT_ID` and `THREADS_CLIENT_SECRET`.
+Configure `META_CLIENT_ID`, `META_CLIENT_SECRET`, and `META_API_VERSION` for a Facebook App using Facebook Login. The owner authorizes Pages; linked professional Instagram accounts are discovered from those Pages. Consumer Instagram accounts are unsupported. Threads requires the Access the Threads API use case and its own **Threads App ID/secret**, configured as `THREADS_CLIENT_ID` and `THREADS_CLIENT_SECRET`; Facebook Login credentials are not interchangeable. A separate developer app registration is recommended for this setup. If Meta offers the Threads use case on the existing registration, its Threads-specific credentials can also be used: Post Chief does not require the two registrations to be separate. Both connections use the same Post Chief dashboard.
 
 Register exact callbacks at `PUBLIC_URL/api/connections/oauth/meta/callback` and `PUBLIC_URL/api/connections/oauth/threads/callback`. Start with an authenticated, CSRF-protected POST to `/api/connections/oauth/{provider}/authorize`, then open the returned URL. State expires after ten minutes, is bound to the owner and organization, and is atomically consumed before exchange. Tokens are encrypted and never returned to the browser. App review and the required permissions must be available for accounts outside app roles.
+
+The Threads connection requests `threads_basic`, `threads_content_publish` and `threads_manage_insights` for profile/post access, publishing and analytics. Enable those permissions in the Threads use case before connecting. Use the Threads-specific callback above; the Facebook/Instagram callback does not handle Threads consent.
 
 Both the Facebook and Instagram dashboard buttons currently use the combined Meta consent flow. Its requested scopes are `business_management`, `pages_show_list`, `pages_read_engagement`, `pages_read_user_content`, `pages_manage_posts`, `instagram_basic`, `instagram_content_publish` and `instagram_manage_insights`. The Instagram setup's required-content button alone may not enable Page publishing or Instagram insights. In the Instagram use case, open Permissions and features and add `instagram_manage_insights`. Add the Content management use case **Manage everything on your Page**, customize it, and enable `pages_manage_posts` in its permission table before connecting. An `Invalid Scopes` error naming `pages_manage_posts` or `instagram_manage_insights` means the app configuration must be checked for those permissions; retrying the same authorization URL will not add them. Register the exact tunnel hostname under App Domains too, and update it and the redirect URI if the Quick Tunnel hostname changes.
 
