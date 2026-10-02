@@ -29,6 +29,10 @@ class OAuthService:
             app,secret=s.threads_client_id,s.threads_client_secret.get_secret_value()
             endpoint='https://threads.net/oauth/authorize'
             scope='threads_basic,threads_content_publish,threads_manage_insights'
+        elif provider=='linkedin':
+            app,secret=s.linkedin_client_id,s.linkedin_client_secret.get_secret_value()
+            endpoint='https://www.linkedin.com/oauth/v2/authorization'
+            scope=s.linkedin_scopes
         else: raise HTTPException(404,'OAuth provider not found')
         if not app or not secret: raise HTTPException(503,'Configure this provider app before connecting')
         return endpoint+'?'+urlencode({'client_id':app,'redirect_uri':self.redirect_uri(provider),'scope':scope,'response_type':'code','state':state})
@@ -45,6 +49,18 @@ class OAuthService:
 
     async def exchange(self,provider,code):
         s=self.settings
+        if provider=='linkedin':
+            value=await self.request('POST','https://www.linkedin.com/oauth/v2/accessToken',data={
+                'client_id':s.linkedin_client_id,'client_secret':s.linkedin_client_secret.get_secret_value(),
+                'grant_type':'authorization_code','redirect_uri':self.redirect_uri(provider),'code':code})
+            profile=await self.request('GET','https://api.linkedin.com/v2/userinfo',headers={'Authorization':'Bearer '+value['access_token']})
+            author='urn:li:person:'+profile['sub']
+            expires=datetime.now(timezone.utc)+timedelta(seconds=int(value['expires_in']))
+            credentials={'author':author,'access_token':value['access_token'],'scopes':value.get('scope',s.linkedin_scopes).split(),
+                'expires_at':expires.isoformat()}
+            for field in ('refresh_token','refresh_token_expires_in'):
+                if value.get(field): credentials[field]=value[field]
+            return [{'provider':'linkedin','id':author,'name':profile.get('name','LinkedIn member'),'credentials':credentials,'expires_at':expires}]
         if provider=='threads':
             short=await self.request('POST','https://graph.threads.net/oauth/access_token',data={
                 'client_id':s.threads_client_id,'client_secret':s.threads_client_secret.get_secret_value(),

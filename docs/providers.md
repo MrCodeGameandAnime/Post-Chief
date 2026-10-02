@@ -13,7 +13,19 @@ Each publication gets a stable repository record key in the [TID syntax required
 Analytics reports supported engagement counters. Missing counters and unsupported impressions are not invented. Comments and replies are not advertised in this MVP adapter.
 
 Live connection and publication still require the owner's Bluesky account and intended content. Local HTTP contract tests verify requests and recovery behavior; they do not prove live provider access.
-# Meta connections
+## LinkedIn (Gate 6)
+
+Configure `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, and `LINKEDIN_API_VERSION` (default `202609`). Register `PUBLIC_URL/api/connections/oauth/linkedin/callback`. Enable the OpenID Connect and Share on LinkedIn products. The default `LINKEDIN_SCOPES` is `openid profile w_member_social`; email is unnecessary. Start the same owner OAuth flow with provider `linkedin`. Identity comes from authenticated userinfo, never an unverified ID token. Tokens, optional programmatic refresh tokens and resumable video upload credentials are encrypted.
+
+Text, JPEG/PNG/GIF, organic multi-image posts (up to twenty images), and multipart MP4 video uploads use native Posts, Images and Videos APIs. The application caps media at 80 MiB. `x-restli-id` is retained as the publication URN. Public writes use a persisted intent; uncertain results require reconciliation. `w_member_social` alone cannot GET versioned image status: upload checkpoints provide processing time, and provider acceptance is still required. Platform media constraints may reject an otherwise valid application asset.
+
+Company Pages require approved organization products/scopes. Add permitted `w_organization_social`, organization-read/admin permissions and `r_organization_social` to `LINKEDIN_SCOPES`, then reconnect. Use `/api/connections/linkedin/{member-account-id}/organizations` to list and POST an eligible Page. Selection checks the authenticated member's approved publishing role against LinkedIn; arbitrary organization URNs are rejected.
+
+Member analytics separately requires approved `r_member_postAnalytics`; organization analytics requires `r_organization_social`. Missing access is reported explicitly and does not become zero-valued metrics. Programmatic refresh is available only when LinkedIn issues a refresh token; other connections require reauthorization after expiration.
+
+Contracts: [Posts](https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api), [Images](https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/images-api), [Videos](https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/videos-api), and [member analytics](https://learn.microsoft.com/en-us/linkedin/marketing/community-management/members/post-statistics).
+
+## Meta connections (Gate 5)
 
 Configure `META_CLIENT_ID`, `META_CLIENT_SECRET`, and `META_API_VERSION` for a Facebook App using Facebook Login. The owner authorizes Pages; linked professional Instagram accounts are discovered from those Pages. Consumer Instagram accounts are unsupported. Configure a separate Threads App using `THREADS_CLIENT_ID` and `THREADS_CLIENT_SECRET`.
 

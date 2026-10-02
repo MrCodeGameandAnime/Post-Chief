@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     linkedin_client_secret: SecretStr = SecretStr("")
     meta_api_version: str = "v25.0"
     linkedin_api_version: str = "202609"
+    linkedin_scopes: str = "openid profile w_member_social"
 
     @field_validator("signing_key")
     @classmethod
