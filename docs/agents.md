@@ -6,7 +6,7 @@ Read endpoints reuse the campaign/planner, connection, capability, media, GitHub
 
 Autonomy modes are AUTO, APPROVAL and DISABLED. Draft/media creation and analytics refresh are AUTO initially. Scheduling, public publishing and workspace writes require approval initially. The owner can change each permission in Agent or `PUT /api/settings/autonomy`. Scope grants never override a disabled policy. Policy changes control future agent actions; already authorized schedules remain explicit records and can be cancelled separately.
 
-Approval-required operations use `POST /api/agent/actions` with `action`, `target_id` where applicable, and `data`. Supported actions: campaign.create/update/schedule/publish/cancel, publication.retry, analytics.refresh and github.write. Native API writes obey autonomy too; they cannot bypass required approval. Media uploads can use the native endpoint only under AUTO; an approval-required media upload must be performed by the owner.
+Approval-required operations use `POST /api/agent/actions` with `action`, `target_id` where applicable, and `data`. Supported actions: campaign.create/update/schedule/publish/cancel, publication.retry, analytics.refresh, github.write and feedback.sync. Native API writes obey autonomy too; they cannot bypass required approval. Media uploads can use the native endpoint only under AUTO; an approval-required media upload must be performed by the owner.
 
 Example publishing request:
 

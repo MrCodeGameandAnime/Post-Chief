@@ -22,4 +22,6 @@ Run `alembic upgrade head`, then `uvicorn postchief.main:create_app --factory --
 
 From `root/`, configure `.env` and run `docker compose up --build -d`. PostgreSQL and Redis stay on the private container network. Deploy the API behind HTTPS before connecting provider accounts. Use migrations before application upgrades, back up PostgreSQL and the media volume, and keep the encryption key with the backup. Provider tokens cannot be decrypted with a different key.
 
-Provider account setup and live publishing validation are separate from local tests. Never treat transport fixtures as proof of a successful public post. See `docs/plan.md` for gate acceptance requirements.
+Provider account setup and live publishing validation are separate from local tests. Never treat transport fixtures as proof of a successful public post. See [operations](docs/operations.md), [provider setup](docs/providers.md), [GitHub setup](docs/github-setup.md), [agent controls](docs/agents.md) and [feedback](docs/feedback.md).
+
+Gates 1–11 are implemented. [Gate 12 acceptance](docs/dogfood.md) has offline integration coverage; the live Instagram check and Metricool retirement are paused pending owner setup and acceptance. See `docs/plan.md` for the full product plan.
