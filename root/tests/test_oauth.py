@@ -111,3 +111,30 @@ async def test_threads_exchange_uses_separate_app_and_long_lived_token(app):
         result=(await OAuthService(http,app.state.settings).exchange('threads','code'))[0]
     assert result['credentials']['access_token']=='long'
     assert result['expires_at']>datetime.now(timezone.utc)+timedelta(days=59)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('failed_step,stage', [
+    (1, 'Threads authorization code exchange failed'),
+    (2, 'Threads long-lived token exchange failed'),
+    (3, 'Threads profile lookup failed'),
+])
+async def test_threads_exchange_reports_fixed_stage_without_provider_secrets(app,failed_step,stage):
+    from provider_contracts import ProviderError,ErrorReason
+    calls=0
+
+    def transport(request):
+        nonlocal calls
+        calls+=1
+        if calls==failed_step:
+            return httpx.Response(400,json={'error':{'code':190,'error_subcode':'private-subcode','message':'private-provider-secret'}})
+        return httpx.Response(200,json={'access_token':'private-token','expires_in':5184000})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as http:
+        with pytest.raises(ProviderError) as caught:
+            await OAuthService(http,app.state.settings).exchange('threads','private-code')
+    assert caught.value.reason==ErrorReason.AUTH_REVOKED
+    assert stage in caught.value.message
+    assert '190' in caught.value.message
+    assert 'private' not in caught.value.message
+    assert calls==failed_step

@@ -37,14 +37,24 @@ class OAuthService:
         if not app or not secret: raise HTTPException(503,'Configure this provider app before connecting')
         return endpoint+'?'+urlencode({'client_id':app,'redirect_uri':self.redirect_uri(provider),'scope':scope,'response_type':'code','state':state})
 
-    async def request(self,method,url,**kwargs):
+    async def request(self,method,url,*,failure_stage=None,**kwargs):
         try:
             response=await self.http.request(method,url,**kwargs)
             value=response.json()
         except (httpx.HTTPError,ValueError):
             raise ProviderError(ErrorReason.NETWORK_ERROR,'Authorization exchange failed; start connection again')
         if response.is_error or value.get('error'):
-            raise ProviderError(ErrorReason.AUTH_REVOKED,'Authorization failed; check app configuration and consent')
+            message='Authorization failed; check app configuration and consent'
+            if failure_stage:
+                message=failure_stage+'; start a fresh connection from Post Chief Connections'
+                # Only numeric provider codes are safe to surface. Provider text,
+                # request URLs and response bodies can contain credentials.
+                error=value.get('error')
+                if isinstance(error,dict):
+                    codes=[f'{name}={error[name]}' for name in ('code','error_subcode')
+                           if type(error.get(name)) is int and 0<=error[name]<=2147483647]
+                    if codes: message+=' ('+', '.join(codes)+')'
+            raise ProviderError(ErrorReason.AUTH_REVOKED,message)
         return value
 
     async def exchange(self,provider,code):
@@ -64,11 +74,14 @@ class OAuthService:
         if provider=='threads':
             short=await self.request('POST','https://graph.threads.net/oauth/access_token',data={
                 'client_id':s.threads_client_id,'client_secret':s.threads_client_secret.get_secret_value(),
-                'grant_type':'authorization_code','redirect_uri':self.redirect_uri(provider),'code':code})
+                'grant_type':'authorization_code','redirect_uri':self.redirect_uri(provider),'code':code},
+                failure_stage='Threads authorization code exchange failed')
             long=await self.request('GET','https://graph.threads.net/access_token',
                 params={'grant_type':'th_exchange_token','client_secret':s.threads_client_secret.get_secret_value()},
-                headers={'Authorization':'Bearer '+short['access_token']})
-            profile=await self.request('GET','https://graph.threads.net/v1.0/me',params={'fields':'id,username'},headers={'Authorization':'Bearer '+long['access_token']})
+                headers={'Authorization':'Bearer '+short['access_token']},
+                failure_stage='Threads long-lived token exchange failed')
+            profile=await self.request('GET','https://graph.threads.net/v1.0/me',params={'fields':'id,username'},
+                headers={'Authorization':'Bearer '+long['access_token']},failure_stage='Threads profile lookup failed')
             expires=datetime.now(timezone.utc)+timedelta(seconds=int(long['expires_in']))
             return [{'provider':'threads','id':profile['id'],'name':profile['username'],
                 'credentials':{'id':profile['id'],'access_token':long['access_token'],'expires_at':expires.isoformat()},'expires_at':expires}]
