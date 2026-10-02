@@ -6,7 +6,9 @@ Gates 1–11 are implemented and pushed. **Gate 12 MVP acceptance is complete fo
 
 The reviewed GitHub feedback was written to `MrCodeGameandAnime/404-builds-social` on `main` in commit `95517c87c219f5e9d6c308bf0ce6626342c73a17`: the post record, content ledger and analytics were committed together. A fresh preview returned `unchanged=true` with the same digest. The owner accepted the create, schedule, publish, status, analytics and GitHub feedback workflow for MVP. Non-secret live IDs, permalink and timing evidence are in the sibling overnight log. Fixture results remain separate from live evidence.
 
-This accepted Facebook/Instagram workflow does not require Metricool. Retiring Metricool's other schedules and integrations is a separate owner decision; no history, schedules or integrations were removed. Other provider implementations have automated coverage but were not included in this live acceptance.
+The owner subsequently completed the Threads loop on the same campaign. Threads published at 16:46:58 America/New_York on October 2, 2026; the owner supplied the actual post screenshot and the dashboard's published outcome. Native metrics collected at 16:47:22 reported available zero views, likes, comments and shares. Reviewed feedback was written to the same workspace in commit `246659aa3ec52a9f382bb1563b53370884e15297`. Read-only database checks confirmed the original Facebook/Instagram publication IDs, timestamps and worker run counts were retained. Threads' public URL is currently unavailable in its publication record; an unchanged follow-up preview for this latest feedback has not been supplied.
+
+The accepted Facebook/Instagram/Threads workflow does not require Metricool. Retiring Metricool's other schedules and integrations is a separate owner decision; no history, schedules or integrations were removed. Bluesky and LinkedIn implementations have automated coverage but were not included in this live acceptance.
 
 ## Follow-up improvements
 
@@ -14,6 +16,17 @@ This accepted Facebook/Instagram workflow does not require Metricool. Retiring M
 - Implemented after acceptance: validated Instagram permalinks from native analytics, including a stored-snapshot fallback for existing publications. The owner reviewed and wrote the permalink update in commit `50c4d19cc0d8b0691f7d46d68ba50a08d1b3d4ae`; the next preview reported zero changes.
 - Implemented after acceptance: delivery status is prominent, with worker run counts and their preparation/retry meaning under Delivery details. Counts are retained in API and GitHub records.
 - Implemented after acceptance: attempted campaign text is labelled Original master copy, with a note that provider overrides apply and later native edits are not synced back. GitHub feedback preserves the original saved campaign caption.
+- Implemented and used live: add a connected destination to an attempted campaign, save its draft paused, and explicitly publish only that destination. The owner used this flow for Threads without republishing Facebook or Instagram. Paused, unattempted destination copy and media remain editable.
+- Implemented, with live acceptance pending: load current Facebook feed text, review a specific replacement, and apply it with a separate edit audit. The owner has not supplied and applied a reviewed replacement through this flow. Instagram captions use the native editing link. Original campaign copy and publication history remain available.
+
+## Remaining acceptance work
+
+- Inspect the feedback dialog and maintenance controls on a mobile viewport. Desktop screenshots establish the feedback dialog layout; mobile visual verification is still pending.
+- Review an intended Facebook feed-text replacement before applying a live edit. Check the resulting native text and separate edit history without recreating the post.
+- Configure and authorize Bluesky/LinkedIn accounts before reviewing intended live content for those providers. Their transport fixtures do not establish live access.
+- Create an encrypted backup outside the deployment host and rehearse recovery using it. The synthetic PostgreSQL/media recovery rehearsal does not establish that production backups exist.
+
+These checks remain separate from the accepted Facebook/Instagram/Threads publication loop. They do not require another copy of the accepted campaign to be published.
 
 `root/tests/test_dogfood.py` exercises owner authentication, JPEG upload, campaign creation, future scheduling, immediate dispatch, the native Instagram container adapter, persisted processing and publish-intent checkpoints, duplicate execution protection, native analytics with a real zero, and reviewed GitHub feedback with an idempotent rerun. All external responses are fixtures. Separate Celery tests verify actual Redis queue delivery; both suites run on SQLite and PostgreSQL in CI.
 
