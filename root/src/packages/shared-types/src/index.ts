@@ -28,6 +28,7 @@ export interface Publication {
   url: string | null;
   attempts: number;
   published_at?: string | null;
+  provider_id?: string | null;
   error: { message: string; action_required: string } | null;
 }
 export interface Campaign {

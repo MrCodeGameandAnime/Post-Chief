@@ -21,6 +21,11 @@ import "./styles.css";
 import { Analytics } from "./Analytics";
 import { Agent } from "./Agent";
 import { Feedback } from "./Feedback";
+import {
+  AddDestination,
+  DestinationDelivery,
+  FacebookTextEdit,
+} from "./Maintenance";
 
 const providers: ProviderName[] = [
   "bluesky",
@@ -691,6 +696,21 @@ function Editor({
           <p className="status">{current.status}</p>
           <p>{campaignDate(current)}</p>
           {!revisionChanged &&
+            attempted &&
+            !current.publications.some((p) =>
+              ["pending", "retrying", "processing"].includes(p.status),
+            ) && (
+              <AddDestination
+                key={current.revision}
+                campaign={current}
+                accounts={accounts}
+                assets={assets}
+                run={run}
+                busy={busy}
+                close={close}
+              />
+            )}
+          {!revisionChanged &&
             ["draft", "scheduled"].includes(current.status) &&
             current.publications.every((p) => p.attempts === 0) && (
               <>
@@ -761,6 +781,41 @@ function Editor({
                 <a href={pub.url} target="_blank" rel="noreferrer">
                   View published post ↗
                 </a>
+              )}
+              {!revisionChanged &&
+                pub.status === "cancelled" &&
+                pub.attempts === 0 && (
+                  <DestinationDelivery
+                    key={current.revision}
+                    campaign={current}
+                    publication={pub}
+                    assets={assets}
+                    run={run}
+                    busy={busy}
+                    close={close}
+                  />
+                )}
+              {pub.status === "published" &&
+                pub.provider === "facebook" &&
+                pub.provider_id?.includes("_") && (
+                  <FacebookTextEdit
+                    publicationId={pub.id}
+                    run={run}
+                    busy={busy}
+                  />
+                )}
+              {pub.status === "published" && pub.provider === "instagram" && (
+                <p>
+                  Instagram caption edits must be made in Instagram.
+                  {pub.url && (
+                    <>
+                      {" "}
+                      <a href={pub.url} target="_blank" rel="noreferrer">
+                        Edit on Instagram ↗
+                      </a>
+                    </>
+                  )}
+                </p>
               )}
               <details>
                 <summary>Delivery details</summary>

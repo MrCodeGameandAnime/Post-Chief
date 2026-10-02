@@ -18,6 +18,8 @@ from pydantic import Field
 from cryptography.fernet import InvalidToken
 
 router=APIRouter(tags=['Scheduling and publication'])
+from postchief.publishing.maintenance import router as maintenance_router
+router.include_router(maintenance_router)
 
 
 class Schedule(BaseModel):

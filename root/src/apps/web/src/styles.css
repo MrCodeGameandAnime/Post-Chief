@@ -721,3 +721,9 @@ footer {
     margin: 6vh 18px;
   }
 }
+.post-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 18rem;
+  overflow-y: auto;
+}
