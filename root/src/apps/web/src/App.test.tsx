@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import React from "react";
-import { render, screen, cleanup, waitFor } from "@testing-library/react";
+import { act, render, screen, cleanup, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { App } from "./App";
+import type { Campaign } from "../../../packages/shared-types/src";
 
 afterEach(() => {
   cleanup();
@@ -55,13 +56,11 @@ test("saves a draft with selected destination and session CSRF", async () => {
   });
   expect(new Headers(writes[0].headers).get("X-CSRF-Token")).toBe("draft-csrf");
 });
-function mount() {
+function mount(
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+) {
   return render(
-    <QueryClientProvider
-      client={
-        new QueryClient({ defaultOptions: { queries: { retry: false } } })
-      }
-    >
+    <QueryClientProvider client={client}>
       <App />
     </QueryClientProvider>,
   );
@@ -213,6 +212,10 @@ test.each([
     ) as HTMLTextAreaElement;
     expect(copy.value).toBe("Original caption");
     expect(copy.disabled).toBe(attempts > 0);
+    if (status !== "draft") {
+      expect(screen.getByText("No scheduled time")).toBeTruthy();
+      expect(screen.queryByText("Unscheduled draft")).toBeNull();
+    }
     if (attempts)
       expect(
         screen.getByText(
@@ -231,3 +234,141 @@ test.each([
       ).toBe("https://www.instagram.com/p/example/");
   },
 );
+
+function deliveryFixture(status = "scheduled"): Campaign {
+  return {
+    id: "live",
+    title: "Live delivery",
+    body: "Saved copy",
+    revision: 2,
+    status,
+    scheduled_at: "2026-10-02T13:17:00Z",
+    asset_ids: [],
+    overrides: {},
+    publications: [
+      {
+        id: "pub",
+        account_id: "account",
+        provider: "instagram",
+        account_name: "404.builds.dev",
+        status: "pending",
+        attempts: 0,
+        error: null,
+        url: null,
+      },
+    ],
+  };
+}
+function liveWorkspace(
+  campaign: ReturnType<typeof deliveryFixture>,
+  client: QueryClient,
+) {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      async (url: string) =>
+        new Response(
+          JSON.stringify(
+            url.endsWith("/auth/me")
+              ? { email: "owner@example.test", csrf: "csrf" }
+              : url.endsWith("/campaigns")
+                ? [campaign]
+                : url.endsWith("/connections")
+                  ? [
+                      {
+                        id: "account",
+                        provider: "instagram",
+                        name: "404.builds.dev",
+                        remote_id: "remote",
+                        active: true,
+                        expires_at: null,
+                      },
+                    ]
+                  : [],
+          ),
+        ),
+    ),
+  );
+  mount(client);
+}
+
+test("open editor follows refreshed delivery status and publication time", async () => {
+  const campaign = deliveryFixture();
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  liveWorkspace(campaign, client);
+  await userEvent.click(
+    await screen.findByRole("button", { name: "Live delivery" }),
+  );
+  const completed = {
+    ...campaign,
+    status: "published",
+    publications: [
+      {
+        ...campaign.publications[0],
+        status: "published",
+        attempts: 3,
+        url: "https://www.instagram.com/p/live/",
+        published_at: "2026-10-02T13:17:43Z",
+      },
+    ],
+  };
+  await act(async () => {
+    client.setQueryData(["campaigns"], {
+      pages: [[completed]],
+      pageParams: [0],
+    });
+  });
+  expect(
+    await screen.findByRole("link", { name: "View published post ↗" }),
+  ).toBeTruthy();
+  expect(
+    screen.queryByRole("button", { name: "Cancel pending delivery" }),
+  ).toBeNull();
+  expect(screen.getByText(/^Published at /)).toBeTruthy();
+  expect(screen.getByLabelText("Original master copy")).toHaveProperty(
+    "value",
+    "Saved copy",
+  );
+});
+
+test("delivery refresh preserves unsaved draft and blocks stale revisions", async () => {
+  const campaign = { ...deliveryFixture("draft"), scheduled_at: null };
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  liveWorkspace(campaign, client);
+  await userEvent.click(
+    await screen.findByRole("button", { name: "Live delivery" }),
+  );
+  const input = screen.getByLabelText("Master copy");
+  await userEvent.clear(input);
+  await userEvent.type(input, "Unsaved local copy");
+  await act(async () => {
+    client.setQueryData(["campaigns"], {
+      pages: [[{ ...campaign }]],
+      pageParams: [0],
+    });
+  });
+  expect(screen.getByLabelText("Master copy")).toHaveProperty(
+    "value",
+    "Unsaved local copy",
+  );
+  expect(screen.getByRole("button", { name: "Save draft" })).toBeTruthy();
+  await act(async () => {
+    client.setQueryData(["campaigns"], {
+      pages: [[{ ...campaign, revision: 3, body: "Other session copy" }]],
+      pageParams: [0],
+    });
+  });
+  expect(
+    await screen.findByText(/Campaign changed since you opened it/),
+  ).toBeTruthy();
+  expect(screen.getByLabelText("Opened master copy")).toHaveProperty(
+    "value",
+    "Unsaved local copy",
+  );
+  expect(screen.queryByRole("button", { name: "Save draft" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Publish now" })).toBeNull();
+});

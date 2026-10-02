@@ -29,13 +29,18 @@ const providers: ProviderName[] = [
   "threads",
   "linkedin",
 ];
-const date = (value: string | null) =>
+const date = (value: string | null, fallback = "Not reported") =>
   value
     ? new Date(value).toLocaleString([], {
         dateStyle: "medium",
         timeStyle: "short",
       })
-    : "Unscheduled draft";
+    : fallback;
+const campaignDate = (campaign: Campaign) =>
+  date(
+    campaign.scheduled_at,
+    campaign.status === "draft" ? "Unscheduled draft" : "No scheduled time",
+  );
 const message = (error: unknown) =>
   error instanceof Error ? error.message : "Something went wrong.";
 type Run = (action: () => Promise<unknown>) => Promise<boolean>;
@@ -235,6 +240,11 @@ export function App() {
             <Editor
               key={editing === "new" ? "new" : editing.id}
               campaign={editing === "new" ? null : editing}
+              latestCampaign={
+                editing === "new"
+                  ? undefined
+                  : rows.find((row) => row.id === editing.id)
+              }
               accounts={accounts.data ?? []}
               assets={assets.data ?? []}
               run={run}
@@ -342,7 +352,7 @@ function CampaignList({
               {row.title}
             </button>
             <p>{row.body.slice(0, 180)}</p>
-            <small>{date(row.scheduled_at)}</small>
+            <small>{campaignDate(row)}</small>
           </div>
           <div className="destinations">
             {row.publications.map((pub) => (
@@ -462,6 +472,7 @@ function Planner({
 
 function Editor({
   campaign,
+  latestCampaign,
   accounts,
   assets,
   run,
@@ -469,6 +480,7 @@ function Editor({
   close,
 }: {
   campaign: Campaign | null;
+  latestCampaign?: Campaign;
   accounts: Connection[];
   assets: Asset[];
   run: Run;
@@ -483,11 +495,14 @@ function Editor({
   const [media, setMedia] = useState(campaign?.asset_ids ?? []);
   const [overrides, setOverrides] = useState(campaign?.overrides ?? {});
   const [schedule, setSchedule] = useState("");
-  const attempted = campaign?.publications.some((p) => p.attempts > 0) ?? false;
+  const current = latestCampaign ?? campaign;
+  const revisionChanged = !!campaign && current?.revision !== campaign.revision;
+  const attempted = current?.publications.some((p) => p.attempts > 0) ?? false;
   const editable =
     !campaign ||
-    (campaign.status === "draft" &&
-      campaign.publications.every((p) => p.attempts === 0));
+    (!revisionChanged &&
+      current?.status === "draft" &&
+      current.publications.every((p) => p.attempts === 0));
   const toggle = (values: string[], id: string) =>
     values.includes(id) ? values.filter((x) => x !== id) : [...values, id];
   const save = async (e: FormEvent) => {
@@ -524,7 +539,11 @@ function Editor({
           />
         </label>
         <label>
-          {attempted ? "Original master copy" : "Master copy"}
+          {revisionChanged
+            ? "Opened master copy"
+            : attempted
+              ? "Original master copy"
+              : "Master copy"}
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
@@ -533,7 +552,14 @@ function Editor({
             disabled={!editable}
           />
         </label>
-        {attempted && (
+        {revisionChanged && (
+          <p className="notice error" role="alert">
+            Campaign changed since you opened it. Return to Content and reopen
+            it to load the latest saved copy. Your unsaved copy is retained
+            here.
+          </p>
+        )}
+        {attempted && !revisionChanged && (
           <p className="muted">
             This is the original campaign copy saved for delivery. Provider copy
             overrides apply to their destinations. Edits made directly on a
@@ -658,14 +684,15 @@ function Editor({
           </button>
         </div>
       </form>
-      {campaign && (
+      {current && (
         <div className="delivery">
           <h3>Delivery</h3>
-          <Feedback campaignId={campaign.id} run={run} busy={busy} />
-          <p className="status">{campaign.status}</p>
-          <p>{date(campaign.scheduled_at)}</p>
-          {["draft", "scheduled"].includes(campaign.status) &&
-            campaign.publications.every((p) => p.attempts === 0) && (
+          <Feedback campaignId={current.id} run={run} busy={busy} />
+          <p className="status">{current.status}</p>
+          <p>{campaignDate(current)}</p>
+          {!revisionChanged &&
+            ["draft", "scheduled"].includes(current.status) &&
+            current.publications.every((p) => p.attempts === 0) && (
               <>
                 <label>
                   Schedule in your timezone
@@ -681,7 +708,7 @@ function Editor({
                     onClick={async () => {
                       if (
                         await run(() =>
-                          send("/campaigns/" + campaign.id + "/schedule", {
+                          send("/campaigns/" + current.id + "/schedule", {
                             scheduled_at: new Date(schedule).toISOString(),
                           }),
                         )
@@ -696,7 +723,7 @@ function Editor({
                     onClick={async () => {
                       if (
                         await run(() =>
-                          send("/campaigns/" + campaign.id + "/publish"),
+                          send("/campaigns/" + current.id + "/publish"),
                         )
                       )
                         close();
@@ -708,12 +735,12 @@ function Editor({
                 <small>Save copy changes before scheduling.</small>
               </>
             )}
-          {["scheduled", "publishing", "partial"].includes(campaign.status) && (
+          {["scheduled", "publishing", "partial"].includes(current.status) && (
             <button
               disabled={busy}
               onClick={async () => {
                 if (
-                  await run(() => send("/campaigns/" + campaign.id + "/cancel"))
+                  await run(() => send("/campaigns/" + current.id + "/cancel"))
                 )
                   close();
               }}
@@ -721,12 +748,15 @@ function Editor({
               Cancel pending delivery
             </button>
           )}
-          {campaign.publications.map((pub) => (
+          {current.publications.map((pub) => (
             <article className="publication" key={pub.id}>
               <strong>
                 {pub.provider} · {pub.account_name}
               </strong>
               <p>{pub.status}</p>
+              {pub.published_at && (
+                <p className="muted">Published at {date(pub.published_at)}</p>
+              )}
               {pub.url && (
                 <a href={pub.url} target="_blank" rel="noreferrer">
                   View published post ↗
