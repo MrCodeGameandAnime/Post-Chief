@@ -77,8 +77,10 @@ class OAuthService:
                 'grant_type':'authorization_code','redirect_uri':self.redirect_uri(provider),'code':code},
                 failure_stage='Threads authorization code exchange failed')
             long=await self.request('GET','https://graph.threads.net/access_token',
-                params={'grant_type':'th_exchange_token','client_secret':s.threads_client_secret.get_secret_value()},
-                headers={'Authorization':'Bearer '+short['access_token']},
+                # Match Meta's Threads sample: this grant receives the short
+                # token as access_token, rather than bearer authentication.
+                params={'grant_type':'th_exchange_token','client_secret':s.threads_client_secret.get_secret_value(),
+                        'access_token':short['access_token']},
                 failure_stage='Threads long-lived token exchange failed')
             profile=await self.request('GET','https://graph.threads.net/v1.0/me',params={'fields':'id,username'},
                 headers={'Authorization':'Bearer '+long['access_token']},failure_stage='Threads profile lookup failed')

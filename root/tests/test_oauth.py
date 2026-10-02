@@ -102,7 +102,8 @@ async def test_threads_exchange_uses_separate_app_and_long_lived_token(app):
             assert request.method=='POST' and b'grant_type=authorization_code' in request.content
             return httpx.Response(200,json={'access_token':'short'})
         if request.url.path=='/access_token':
-            assert request.headers['Authorization']=='Bearer short'
+            assert request.url.params['access_token']=='short'
+            assert 'Authorization' not in request.headers
             assert request.url.params['grant_type']=='th_exchange_token'
             return httpx.Response(200,json={'access_token':'long','expires_in':5184000})
         assert request.url.path=='/v1.0/me' and request.headers['Authorization']=='Bearer long'
