@@ -10,6 +10,8 @@ from sqlalchemy.exc import IntegrityError
 from postchief.providers.routes import router as providers_router
 from postchief.providers.oauth import router as oauth_router
 from postchief.providers.linkedin_routes import router as linkedin_router
+from postchief.publishing.routes import router as publishing_router
+from postchief.publishing.media import router as media_router
 from provider_contracts import ProviderError, ErrorReason
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -38,6 +40,8 @@ def create_app(settings: Settings | None = None):
     app.include_router(providers_router, prefix="/api")
     app.include_router(oauth_router, prefix="/api")
     app.include_router(linkedin_router, prefix="/api")
+    app.include_router(publishing_router, prefix="/api")
+    app.include_router(media_router, prefix="/api")
 
     @app.exception_handler(GitHubError)
     async def github_error(request, error):

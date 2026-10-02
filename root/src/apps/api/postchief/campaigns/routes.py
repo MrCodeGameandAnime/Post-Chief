@@ -52,8 +52,8 @@ def update(campaign_id: str, data: CampaignPatch, actor: Actor = Depends(current
     if row.status != "draft":
         raise HTTPException(409, "Only drafts can be edited; cancel scheduling first")
     pubs = list(db.scalars(select(Publication).where(Publication.campaign_id == row.id)))
-    if any(p.status in ("processing","published") for p in pubs):
-        raise HTTPException(409, "Published or processing content cannot be edited")
+    if any(p.status in ("processing","published") or p.attempts > 0 for p in pubs):
+        raise HTTPException(409, "Attempted publications retain their original content; create a new draft for revisions")
     merged = {"title":row.title,"body":row.body,"asset_ids":row.asset_ids,"account_ids":[p.account_id for p in pubs],"overrides":row.overrides,"scheduled_at":row.scheduled_at,"github_path":row.github_path}
     # SQLite returns UTC timestamps without a tzinfo; restore it at this boundary.
     from datetime import timezone
@@ -75,6 +75,9 @@ def update(campaign_id: str, data: CampaignPatch, actor: Actor = Depends(current
     for account_id in validated.account_ids:
         if account_id not in existing:
             db.add(Publication(org_id=actor.org_id, campaign_id=row.id, account_id=account_id))
+    for pub in pubs:
+        if pub not in removed:
+            pub.status, pub.error, pub.provider_state, pub.next_attempt_at = 'pending', None, {}, None
     row.revision += 1
     sync_assets(db,row)
     audit(db, actor, "campaign.update", {"campaign_id":row.id,"revision":row.revision})
@@ -86,7 +89,7 @@ def update(campaign_id: str, data: CampaignPatch, actor: Actor = Depends(current
 def delete_draft(campaign_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
     require_scope(actor, "campaigns:write")
     row = get_campaign(db, actor.org_id, campaign_id, lock=True)
-    protected = db.scalar(select(Publication.id).where(Publication.campaign_id == row.id, Publication.status.in_(["published","processing"])).limit(1))
+    protected = db.scalar(select(Publication.id).where(Publication.campaign_id == row.id, (Publication.status.in_(["published","processing"])) | (Publication.attempts > 0)).limit(1))
     if row.status != "draft" or protected:
         raise HTTPException(409, "Only unpublished drafts can be deleted")
     db.execute(delete(Publication).where(Publication.campaign_id == row.id))

@@ -42,7 +42,32 @@ services:
       migrate: {condition: service_completed_successfully}
       redis: {condition: service_healthy}
     restart: unless-stopped
+  worker:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://postchief:${POSTGRES_PASSWORD}@db:5432/postchief
+      REDIS_URL: redis://redis:6379/0
+    command: celery -A postchief_worker.tasks:app worker --loglevel=INFO --concurrency=2
+    volumes: ["media:/app/data/media"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+    restart: unless-stopped
+  scheduler:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://postchief:${POSTGRES_PASSWORD}@db:5432/postchief
+      REDIS_URL: redis://redis:6379/0
+    command: celery -A postchief_worker.tasks:app beat --loglevel=INFO --schedule=/app/data/celerybeat-schedule
+    volumes: ["scheduler:/app/data"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+    restart: unless-stopped
 volumes:
   postgres:
   redis:
   media:
+  scheduler:
