@@ -110,7 +110,7 @@ class GitHubService:
                 if index<len(parts)-1:
                     if entry['mode']!='040000' or entry['type']!='tree':raise GitHubError(422,'Feedback paths cannot follow symlinks or non-directory parents')
                     current=entry['sha']
-            if not entry:files[path]={'content':'','mode':'100644'};continue
+            if not entry:files[path]={'content':'','mode':'100644','exists':False};continue
             if entry['type']!='blob' or entry['mode'] not in ('100644','100755'):
                 raise GitHubError(422,'Feedback can update only ordinary text files, never symlinks')
             if entry.get('size',0)>1024*1024:raise GitHubError(413,'Feedback file exceeds 1 MiB')
@@ -121,7 +121,7 @@ class GitHubService:
                 if len(raw)>1024*1024:raise GitHubError(413,'Feedback file exceeds 1 MiB')
                 content=raw.decode('utf-8')
             except (ValueError,UnicodeDecodeError):raise GitHubError(422,'Feedback requires UTF-8 text files') from None
-            files[path]={'content':content,'mode':entry['mode']}
+            files[path]={'content':content,'mode':entry['mode'],'exists':True}
         return {'branch':branch,'head':head,'tree':tree,'files':files}
 
     async def commit_feedback(self,installation,repo,snapshot,files,message):

@@ -1,7 +1,7 @@
 import pytest
 import asyncio
 from sqlalchemy import select
-from postchief.models import Publication, AnalyticsSnapshot
+from postchief.models import Publication, AnalyticsSnapshot, SocialAccount
 from postchief.analytics.service import collect, due_metrics, normalize
 from test_publishing import setup_campaign, FakeProvider
 from provider_contracts import ProviderError, ErrorReason
@@ -64,3 +64,29 @@ async def test_concurrent_metrics_jobs_hold_one_lease(app,client):
         await collect(id,app.state.sessions,app.state.settings,lambda *args:provider)
         assert provider.calls==1
     finally:release.set();await first
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('link,expected',[
+    ('https://www.instagram.com/p/Native_post-1/','https://www.instagram.com/p/Native_post-1/'),
+    ('https://www.instagram.com/reel/Native1/','https://www.instagram.com/reel/Native1/'),
+    ('https://evil.example/p/Native1/',None),
+    ('javascript:alert(1)',None),
+    ('https://www.instagram.com@evil.example/p/Native1/',None),
+    ('https://www.instagram.com/p/Native1/?token=private',None),
+])
+async def test_instagram_native_permalink_reaches_campaign_record(app,client,link,expected):
+    id=published(app,client)
+    with app.state.sessions() as db:
+        pub=db.get(Publication,id)
+        db.get(SocialAccount,pub.account_id).provider='instagram'
+        campaign_id=pub.campaign_id;db.commit()
+    class Metrics(FakeProvider):
+        async def get_post_metrics(self,*args):return {'likes':0,'comments':0,'provider':{'permalink':link}}
+    await collect(id,app.state.sessions,app.state.settings,lambda *args:Metrics())
+    assert client.get(f'/api/campaigns/{campaign_id}').json()['publications'][0]['url']==expected
+    with app.state.sessions() as db:
+        assert db.get(Publication,id).provider_url==expected
+        # Historical snapshots also support already-published records.
+        db.get(Publication,id).provider_url=None;db.commit()
+    assert client.get(f'/api/campaigns/{campaign_id}').json()['publications'][0]['url']==expected

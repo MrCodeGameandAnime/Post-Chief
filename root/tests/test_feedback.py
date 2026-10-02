@@ -13,7 +13,7 @@ class FeedbackService:
     def __init__(self):self.files={'docs/CONTENT_LEDGER.md':'# Ledger\nOwner notes remain.\n'}
     async def feedback_snapshot(self,installation,repo,paths):
         assert repo=='owner/social'
-        return {'branch':'main','head':self.head,'tree':'tree','files':{path:{'content':self.files.get(path,''),'mode':'100644'} for path in paths}}
+        return {'branch':'main','head':self.head,'tree':'tree','files':{path:{'content':self.files.get(path,''),'mode':'100644','exists':path in self.files} for path in paths}}
     async def commit_feedback(self,installation,repo,snapshot,files,message):
         if snapshot['head']!=self.head:raise GitHubError(409,'Branch changed')
         self.files.update(files);self.head='b'*40;self.writes+=1
@@ -27,15 +27,22 @@ def workspace(app,service):
 
 
 def test_feedback_preserves_notes_and_repeated_sync_does_not_duplicate_blocks(app,client):
-    campaign=setup_campaign(app,client);service=FeedbackService();workspace(app,service)
+    campaign=setup_campaign(app,client);service=FeedbackService();service.files['docs/ANALYTICS.md']='';workspace(app,service)
     preview=client.get(f'/api/feedback/campaigns/{campaign["id"]}/preview')
     assert preview.status_code==200
     data=preview.json();assert len(data['files'])==3
     assert 'Owner notes remain.' in next(row['content'] for row in data['files'] if row['path']=='docs/CONTENT_LEDGER.md')
+    ledger=next(row for row in data['files'] if row['path']=='docs/CONTENT_LEDGER.md')
+    assert ledger['change']=='updated' and ledger['additions']>0 and ledger['deletions']==0
+    assert '+## Campaign' in ledger['diff']
+    assert next(row for row in data['files'] if row['path']=='docs/ANALYTICS.md')['change']=='updated'
+    assert next(row for row in data['files'] if row['path'].startswith('posts/'))['change']=='created'
     payload={key:data[key] for key in ('revision','digest','base_commit')}
     assert client.post(f'/api/feedback/campaigns/{campaign["id"]}/sync',json=payload).status_code==200
     assert client.post(f'/api/feedback/campaigns/{campaign["id"]}/sync',json=payload).status_code==200
     assert service.writes==1
+    repeated=client.get(f'/api/feedback/campaigns/{campaign["id"]}/preview').json()
+    assert all(row['change']=='unchanged' and row['diff']=='' and row['additions']==row['deletions']==0 for row in repeated['files'])
     assert service.files['docs/CONTENT_LEDGER.md'].count('<!-- postchief:'+campaign['id']+':start -->')==1
 
 

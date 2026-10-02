@@ -1,6 +1,7 @@
 import hashlib
 import json
 import re
+from difflib import unified_diff
 from sqlalchemy import select
 from postchief.models import AnalyticsSnapshot
 from postchief.campaigns.service import serialize_campaign,iso
@@ -55,5 +56,13 @@ async def preview(db,campaign,connection,service):
     files={path:merge_block(snapshot['files'][path]['content'],campaign.id,block) for path,block in blocks.items()}
     digest=hashlib.sha256(json.dumps(files,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
     unchanged=all(files[path]==snapshot['files'][path]['content'] for path in files)
+    reviewed=[]
+    for path,content in files.items():
+        old=snapshot['files'][path]['content']
+        lines=list(unified_diff(old.splitlines(),content.splitlines(),fromfile=path,tofile=path,lineterm=''))
+        reviewed.append({'path':path,'content':content,'diff':'\n'.join(lines),
+            'change':'unchanged' if old==content else 'updated' if snapshot['files'][path].get('exists',bool(old)) else 'created',
+            'additions':sum(line.startswith('+') for line in lines[2:]),
+            'deletions':sum(line.startswith('-') for line in lines[2:])})
     return {'campaign_id':campaign.id,'revision':campaign.revision,'workspace':connection.workspace,'branch':snapshot['branch'],
-        'base_commit':snapshot['head'],'digest':digest,'unchanged':unchanged,'files':[{'path':path,'content':content} for path,content in files.items()]},snapshot,files
+        'base_commit':snapshot['head'],'digest':digest,'unchanged':unchanged,'files':reviewed},snapshot,files

@@ -10,8 +10,8 @@ This accepted Facebook/Instagram workflow does not require Metricool. Retiring M
 
 ## Follow-up improvements
 
-- Replace the narrow raw GitHub preview sidebar with a wider review panel, file tabs, readable diffs and a change summary.
-- Include the Instagram permalink in generated publication records. The accepted record contains the provider ID; its `url` is currently null, while the actual permalink was independently recorded in the overnight log.
+- Implemented after acceptance: bounded GitHub review dialog with file tabs, readable diffs and a change summary. Browser visual verification remains pending because the local browser preview could not attach.
+- Implemented after acceptance: validated Instagram permalinks from native analytics, including a stored-snapshot fallback for existing publications. The originally accepted GitHub record contains a null URL; updating that external record requires reviewing and writing a fresh preview.
 - Explain publication attempt counts as adapter preparation stages and distinguish them from public post counts.
 - Make the original published caption distinguishable from later owner edits made directly on a platform; the accepted feedback records the original campaign caption.
 

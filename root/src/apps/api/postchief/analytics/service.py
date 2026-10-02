@@ -9,6 +9,7 @@ from postchief.models import Publication,SocialAccount,AnalyticsSnapshot,AuditEv
 from postchief.publishing.engine import utc,LEASE
 from postchief.providers.registry import get_provider
 from postchief.vault import Vault
+from postchief.publishing.links import instagram_permalink
 from provider_contracts import ProviderError,ErrorReason
 
 METRICS={'views','reach','impressions','likes','comments','shares','clicks','watch_time','followers','engagement','reactions'}
@@ -78,6 +79,9 @@ async def collect(publication_id,sessions,settings,provider_factory=get_provider
         pub.analytics_started_at=None
         pub.analytics_error=error.to_dict() if error else None
         pub.analytics_next_at=datetime.now(timezone.utc)+timedelta(minutes=10 if error and error.retryable else 1440 if error else 60)
-        if metrics is not None: db.add(AnalyticsSnapshot(org_id=org_id,publication_id=pub.id,metrics=metrics))
+        if metrics is not None:
+            if provider_name=='instagram' and not pub.provider_url:
+                pub.provider_url=instagram_permalink(metrics.get('provider_metrics',{}).get('provider',{}).get('permalink'))
+            db.add(AnalyticsSnapshot(org_id=org_id,publication_id=pub.id,metrics=metrics))
         db.add(AuditEvent(org_id=org_id,actor_id='worker',action='analytics.failed' if error else 'analytics.collected',details={'publication_id':pub.id,'provider':provider_name}))
         db.commit()

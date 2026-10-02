@@ -3,7 +3,8 @@ from fastapi import HTTPException
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from postchief.auth import Actor
-from postchief.models import Campaign, Publication, Asset, SocialAccount, AuditEvent, CampaignAsset
+from postchief.models import Campaign, Publication, Asset, SocialAccount, AuditEvent, CampaignAsset, AnalyticsSnapshot
+from postchief.publishing.links import instagram_permalink
 from postchief.campaigns.schemas import CampaignCreate
 
 
@@ -54,7 +55,13 @@ def sync_assets(db: Session, row: Campaign):
 
 def serialize_publication(db: Session, row: Publication):
     account = db.get(SocialAccount, row.account_id)
-    return {"id":row.id,"campaign_id":row.campaign_id,"account_id":row.account_id,"provider":account.provider,"account_name":account.name,"status":row.status,"provider_id":row.provider_id,"url":row.provider_url,"error":row.error,"attempts":row.attempts,"published_at":iso(row.published_at)}
+    url=row.provider_url
+    if not url and account.provider=='instagram':
+        snapshot=db.scalar(select(AnalyticsSnapshot).where(AnalyticsSnapshot.publication_id==row.id,AnalyticsSnapshot.org_id==row.org_id)
+            .order_by(AnalyticsSnapshot.created_at.desc()).limit(1))
+        if snapshot:
+            url=instagram_permalink(snapshot.metrics.get('provider_metrics',{}).get('provider',{}).get('permalink'))
+    return {"id":row.id,"campaign_id":row.campaign_id,"account_id":row.account_id,"provider":account.provider,"account_name":account.name,"status":row.status,"provider_id":row.provider_id,"url":url,"error":row.error,"attempts":row.attempts,"published_at":iso(row.published_at)}
 
 
 def serialize_campaign(db: Session, row: Campaign):
