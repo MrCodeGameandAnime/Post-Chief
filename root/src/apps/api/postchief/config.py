@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:5173"
     secure_cookies: bool = True
     media_dir: str = "data/media"
+    web_dir: str = "web"
     bootstrap_email: str = ""
     bootstrap_password: SecretStr = SecretStr("")
     github_app_id: str = ""

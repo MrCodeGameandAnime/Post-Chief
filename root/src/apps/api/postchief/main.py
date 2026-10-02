@@ -1,4 +1,6 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI
 from postchief.auth import router as auth_router, bootstrap_owner
 from postchief.github.routes import router as github_router, webhooks
@@ -32,6 +34,13 @@ def create_app(settings: Settings | None = None):
     app.state.engine = make_engine(settings.database_url)
     app.state.sessions = sessionmaker(app.state.engine, expire_on_commit=False)
     app.add_middleware(CORSMiddleware, allow_origins=[settings.frontend_url], allow_credentials=True, allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"], allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"])
+    @app.middleware('http')
+    async def response_security(request, call_next):
+        response=await call_next(request)
+        response.headers['X-Content-Type-Options']='nosniff'
+        response.headers['Referrer-Policy']='no-referrer'
+        response.headers['X-Frame-Options']='DENY'
+        return response
     app.include_router(auth_router, prefix="/api")
     app.include_router(github_router, prefix="/api")
     app.include_router(webhooks, prefix="/api")
@@ -62,4 +71,6 @@ def create_app(settings: Settings | None = None):
             conn.execute(text("SELECT 1"))
         return {"status": "ok", "application": "Post Chief"}
 
+    if Path(settings.web_dir).is_dir():
+        app.mount('/',StaticFiles(directory=settings.web_dir,html=True),name='dashboard')
     return app
