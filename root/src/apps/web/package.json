@@ -1,1 +1,35 @@
-{"name":"@post-chief/web","version":"0.1.0","private":true,"type":"module","scripts":{"dev":"vite --host 127.0.0.1","build":"tsc -b && vite build","typecheck":"tsc --noEmit","test":"vitest run"},"dependencies":{"react":"^19.0.0","react-dom":"^19.0.0","react-router-dom":"^7.0.0","@tanstack/react-query":"^5.0.0","lucide-react":"^0.468.0","clsx":"^2.1.1","tailwind-merge":"^3.0.0","@radix-ui/react-slot":"^1.1.0"},"devDependencies":{"typescript":"~5.9.3","vite":"^7.0.0","@vitejs/plugin-react":"^5.0.0","@types/react":"^19.0.0","@types/react-dom":"^19.0.0","vitest":"^3.0.0","@testing-library/react":"^16.0.0","@testing-library/user-event":"^14.0.0","jsdom":"^26.0.0","tailwindcss":"^4.0.0","@tailwindcss/vite":"^4.0.0"}}
+{
+  "name": "@post-chief/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --maxWorkers=2"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.0.0",
+    "@tanstack/react-query": "^5.0.0",
+    "lucide-react": "^0.468.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.0.0",
+    "@radix-ui/react-slot": "^1.1.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite": "^7.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "vitest": "^3.0.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.0.0",
+    "jsdom": "^26.0.0",
+    "tailwindcss": "^4.0.0",
+    "@tailwindcss/vite": "^4.0.0"
+  }
+}

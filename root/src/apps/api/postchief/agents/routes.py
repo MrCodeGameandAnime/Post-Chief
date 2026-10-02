@@ -18,6 +18,7 @@ from postchief.analytics import routes as analytics
 from postchief.github.routes import get_service
 from postchief.publishing.engine import utc
 from postchief.agents.policy import DEFAULTS,SCOPES,mode_for
+from postchief.feedback import routes as feedback
 
 router=APIRouter(tags=['Agent controls and autonomy'])
 
@@ -120,10 +121,10 @@ def decide(approval_id:str,decision:Literal['approve','reject'],actor:Actor=Depe
 
 ACTIONS={'campaign.create':'campaigns:write','campaign.update':'campaigns:write','campaign.schedule':'campaigns:schedule',
     'campaign.publish':'campaigns:publish','campaign.cancel':'campaigns:write','publication.retry':'campaigns:publish',
-    'github.write':'github:write','analytics.refresh':'analytics:collect'}
+    'github.write':'github:write','feedback.sync':'github:write','analytics.refresh':'analytics:collect'}
 class Action(BaseModel):
     model_config=ConfigDict(extra='forbid')
-    action:Literal['campaign.create','campaign.update','campaign.schedule','campaign.publish','campaign.cancel','publication.retry','github.write','analytics.refresh']
+    action:Literal['campaign.create','campaign.update','campaign.schedule','campaign.publish','campaign.cancel','publication.retry','github.write','feedback.sync','analytics.refresh']
     target_id:str|None=Field(default=None,max_length=36)
     data:dict=Field(default_factory=dict)
     approval_id:str|None=Field(default=None,max_length=36)
@@ -133,13 +134,13 @@ class Action(BaseModel):
 async def execute(data:Action,request:Request,actor:Actor=Depends(current_actor),db:Session=Depends(get_db),service=Depends(get_service)):
     if actor.kind!='agent':raise HTTPException(403,'Agent key required for managed actions')
     scoped=replace(actor,managed_action=True);scope=ACTIONS[data.action];require_scope(scoped,scope)
-    schema={'campaign.create':CampaignCreate,'campaign.update':CampaignPatch,'campaign.schedule':publishing.Schedule,'github.write':github.ContentWrite}.get(data.action)
+    schema={'campaign.create':CampaignCreate,'campaign.update':CampaignPatch,'campaign.schedule':publishing.Schedule,'github.write':github.ContentWrite,'feedback.sync':feedback.FeedbackSync}.get(data.action)
     try:
         parsed=schema.model_validate(data.data) if schema else None
     except ValidationError:raise HTTPException(422,'Invalid action payload') from None
     if not schema and data.data:raise HTTPException(422,'This action does not accept payload fields')
     context={}
-    if data.action.startswith('campaign.') and data.action!='campaign.create':
+    if (data.action.startswith('campaign.') and data.action!='campaign.create') or data.action=='feedback.sync':
         if not data.target_id:raise HTTPException(422,'Campaign target_id required')
         campaign=get_campaign(db,actor.org_id,data.target_id,lock=True);context={'revision':campaign.revision}
     elif data.action in ('publication.retry','analytics.refresh'):
@@ -179,4 +180,5 @@ async def execute(data:Action,request:Request,actor:Actor=Depends(current_actor)
     if data.action=='campaign.cancel':return publishing.cancel(data.target_id,scoped,db)
     if data.action=='publication.retry':return publishing.retry(data.target_id,scoped,db)
     if data.action=='analytics.refresh':return analytics.refresh(data.target_id,scoped,db)
+    if data.action=='feedback.sync':return await feedback.sync(data.target_id,parsed,scoped,db,service)
     return await github.write_content(parsed,scoped,db,service)

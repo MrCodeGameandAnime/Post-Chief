@@ -20,6 +20,7 @@ import type {
 import "./styles.css";
 import { Analytics } from "./Analytics";
 import { Agent } from "./Agent";
+import { Feedback } from "./Feedback";
 
 const providers: ProviderName[] = [
   "bluesky",
@@ -652,6 +653,7 @@ function Editor({
       {campaign && (
         <div className="delivery">
           <h3>Delivery</h3>
+          <Feedback campaignId={campaign.id} run={run} busy={busy} />
           <p className="status">{campaign.status}</p>
           <p>{date(campaign.scheduled_at)}</p>
           {["draft", "scheduled"].includes(campaign.status) &&

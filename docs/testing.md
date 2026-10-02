@@ -16,3 +16,5 @@ Default temporary state is `root/.pytest-tmp`, ignored by Git and outside source
 Celery integration uses TCP Redis with a unique queue and key prefix per test run. Tests do not create AF_UNIX sockets and do not inspect or clean user-profile Docker sockets. If a future test needs a socket, create its exact path under `tmp_path`, track whether that test created it, reject symlinks/reparse points, tolerate an already-removed path, and unlink only that owned resource. Do not recursively remove socket directories.
 
 Gate 7 acceptance requires scheduler, Celery/Redis integration, duplicate dispatch, leases, retry isolation, API and migrations to pass locally, plus a successful remote CI run. Transport mocks alone do not prove queue delivery or live social publishing.
+
+Frontend tests use at most two Vitest workers. This bounds simultaneous jsdom startup on development machines while retaining the ordinary five-second per-test timeout.

@@ -11,25 +11,49 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-test('saves a draft with selected destination and session CSRF', async()=>{
-  const user=userEvent.setup();
-  const writes:RequestInit[]=[];
-  vi.stubGlobal('fetch',vi.fn(async(url:string,options:RequestInit)=>{
-    if(options.method==='POST')writes.push(options);
-    const data=url.endsWith('/auth/me')?{email:'owner@example.test',csrf:'draft-csrf'}:url.endsWith('/connections')?[{id:'account',provider:'bluesky',name:'404 Builds',active:true,remote_id:'did:plc:test',expires_at:null}]:[];
-    return new Response(JSON.stringify(data),{status:200});
-  }));
+test("saves a draft with selected destination and session CSRF", async () => {
+  const user = userEvent.setup();
+  const writes: RequestInit[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, options: RequestInit) => {
+      if (options.method === "POST") writes.push(options);
+      const data = url.endsWith("/auth/me")
+        ? { email: "owner@example.test", csrf: "draft-csrf" }
+        : url.endsWith("/connections")
+          ? [
+              {
+                id: "account",
+                provider: "bluesky",
+                name: "404 Builds",
+                active: true,
+                remote_id: "did:plc:test",
+                expires_at: null,
+              },
+            ]
+          : [];
+      return new Response(JSON.stringify(data), { status: 200 });
+    }),
+  );
   mount();
-  await userEvent.click(await screen.findByRole('button',{name:'New campaign'}));
-  await user.click(screen.getByLabelText('Campaign title'));
-  await user.paste('Launch notes');
-  await user.click(screen.getByLabelText('Master copy'));
-  await user.paste('A useful update');
-  await userEvent.click(await screen.findByRole('checkbox',{name:'bluesky · 404 Builds'}));
-  await userEvent.click(screen.getByRole('button',{name:'Save draft'}));
-  await waitFor(()=>expect(writes).toHaveLength(1));
-  expect(JSON.parse(writes[0].body as string)).toMatchObject({title:'Launch notes',body:'A useful update',account_ids:['account']});
-  expect(new Headers(writes[0].headers).get('X-CSRF-Token')).toBe('draft-csrf');
+  await userEvent.click(
+    await screen.findByRole("button", { name: "New campaign" }),
+  );
+  await user.click(screen.getByLabelText("Campaign title"));
+  await user.paste("Launch notes");
+  await user.click(screen.getByLabelText("Master copy"));
+  await user.paste("A useful update");
+  await userEvent.click(
+    await screen.findByRole("checkbox", { name: "bluesky · 404 Builds" }),
+  );
+  await userEvent.click(screen.getByRole("button", { name: "Save draft" }));
+  await waitFor(() => expect(writes).toHaveLength(1));
+  expect(JSON.parse(writes[0].body as string)).toMatchObject({
+    title: "Launch notes",
+    body: "A useful update",
+    account_ids: ["account"],
+  });
+  expect(new Headers(writes[0].headers).get("X-CSRF-Token")).toBe("draft-csrf");
 });
 function mount() {
   return render(
@@ -45,13 +69,11 @@ function mount() {
 test("requires owner login and shows authentication failures", async () => {
   vi.stubGlobal(
     "fetch",
-    vi
-      .fn()
-      .mockResolvedValue(
-        new Response(JSON.stringify({ detail: "Sign in required" }), {
-          status: 401,
-        }),
-      ),
+    vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ detail: "Sign in required" }), {
+        status: 401,
+      }),
+    ),
   );
   mount();
   expect(

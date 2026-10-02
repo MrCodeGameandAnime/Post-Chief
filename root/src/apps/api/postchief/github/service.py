@@ -89,6 +89,57 @@ class GitHubService:
         endpoint = "releases" if kind == "releases" else "commits"
         return await self.request("GET", f"/repos/{repo}/{endpoint}?per_page=30", token)
 
+    async def feedback_snapshot(self,installation,repo,paths):
+        token=await self.authorized(installation,repo)
+        metadata=await self.request('GET',f'/repos/{repo}',token)
+        branch=metadata['default_branch'];ref=quote('heads/'+branch,safe='/')
+        head=(await self.request('GET',f'/repos/{repo}/git/ref/{ref}',token))['object']['sha']
+        commit=await self.request('GET',f'/repos/{repo}/git/commits/{head}',token)
+        tree=commit['tree']['sha'];trees={};files={}
+        async def entries(sha):
+            if sha not in trees:
+                value=await self.request('GET',f'/repos/{repo}/git/trees/{sha}',token)
+                if value.get('truncated'):raise GitHubError(422,'Workspace tree is truncated; use smaller directories')
+                trees[sha]={entry['path']:entry for entry in value['tree']}
+            return trees[sha]
+        for path in paths:
+            self.content_path(path);parts=path.split('/');current=tree;entry=None
+            for index,part in enumerate(parts):
+                entry=(await entries(current)).get(part)
+                if not entry:break
+                if index<len(parts)-1:
+                    if entry['mode']!='040000' or entry['type']!='tree':raise GitHubError(422,'Feedback paths cannot follow symlinks or non-directory parents')
+                    current=entry['sha']
+            if not entry:files[path]={'content':'','mode':'100644'};continue
+            if entry['type']!='blob' or entry['mode'] not in ('100644','100755'):
+                raise GitHubError(422,'Feedback can update only ordinary text files, never symlinks')
+            if entry.get('size',0)>1024*1024:raise GitHubError(413,'Feedback file exceeds 1 MiB')
+            blob=await self.request('GET',f'/repos/{repo}/git/blobs/{entry["sha"]}',token)
+            try:
+                if blob.get('encoding')!='base64':raise ValueError()
+                raw=base64.b64decode(''.join(blob['content'].split()),validate=True)
+                if len(raw)>1024*1024:raise GitHubError(413,'Feedback file exceeds 1 MiB')
+                content=raw.decode('utf-8')
+            except (ValueError,UnicodeDecodeError):raise GitHubError(422,'Feedback requires UTF-8 text files') from None
+            files[path]={'content':content,'mode':entry['mode']}
+        return {'branch':branch,'head':head,'tree':tree,'files':files}
+
+    async def commit_feedback(self,installation,repo,snapshot,files,message):
+        token=await self.authorized(installation,repo,write=True)
+        ref=quote('heads/'+snapshot['branch'],safe='/')
+        latest=await self.request('GET',f'/repos/{repo}/git/ref/{ref}',token)
+        if latest['object']['sha']!=snapshot['head']:raise GitHubError(409,'Workspace branch changed; review a fresh preview')
+        tree=await self.request('POST',f'/repos/{repo}/git/trees',token,json={'base_tree':snapshot['tree'],
+            'tree':[{'path':path,'mode':snapshot['files'][path]['mode'],'type':'blob','content':content} for path,content in files.items()]})
+        commit=await self.request('POST',f'/repos/{repo}/git/commits',token,json={'message':message,'tree':tree['sha'],'parents':[snapshot['head']]})
+        # Fast-forward-only makes a concurrent writer's branch update fail rather
+        # than replacing it. All feedback files become visible in one commit.
+        try:await self.request('PATCH',f'/repos/{repo}/git/refs/{ref}',token,json={'sha':commit['sha'],'force':False})
+        except GitHubError as error:
+            if error.status in (409,422):raise GitHubError(409,'Workspace branch changed or is protected; review a fresh preview') from None
+            raise
+        return {'sha':commit['sha'],'changed':True}
+
     async def read_binary(self, installation: int, repo: str, path: str, etag: str | None = None, max_bytes: int = 80*1024*1024):
         encoded = self.content_path(path)
         token = await self.authorized(installation,repo)
