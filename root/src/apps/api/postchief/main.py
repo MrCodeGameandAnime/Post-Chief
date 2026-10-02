@@ -15,6 +15,7 @@ from postchief.providers.linkedin_routes import router as linkedin_router
 from postchief.publishing.routes import router as publishing_router
 from postchief.publishing.media import router as media_router
 from postchief.analytics.routes import router as analytics_router
+from postchief.agents.routes import router as agents_router
 from provider_contracts import ProviderError, ErrorReason
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -53,6 +54,7 @@ def create_app(settings: Settings | None = None):
     app.include_router(publishing_router, prefix="/api")
     app.include_router(media_router, prefix="/api")
     app.include_router(analytics_router, prefix="/api")
+    app.include_router(agents_router, prefix="/api")
 
     @app.exception_handler(GitHubError)
     async def github_error(request, error):

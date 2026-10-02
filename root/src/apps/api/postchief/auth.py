@@ -23,6 +23,8 @@ class Actor:
     kind: str
     scopes: list[str]
     csrf: str = ""
+    db: Session | None = None
+    managed_action: bool = False
 
 
 def digest(value: str) -> str:
@@ -51,7 +53,9 @@ def current_actor(request: Request, db: Session = Depends(get_db)) -> Actor:
         key = db.scalar(select(AgentKey).where(AgentKey.token_hash == digest(bearer[7:]), AgentKey.active.is_(True)))
         if not key:
             raise HTTPException(401, "Invalid agent key")
-        return Actor(key.id, key.org_id, "agent", key.scopes)
+        db.add(AuditEvent(org_id=key.org_id,actor_id=key.id,action='agent.request',details={'method':request.method,'path':request.url.path}))
+        db.commit()
+        return Actor(key.id, key.org_id, "agent", key.scopes, db=db)
     token = request.cookies.get("pc_session")
     if not token:
         raise HTTPException(401, "Sign in required")
@@ -80,6 +84,13 @@ def require_owner(actor: Actor = Depends(current_actor)):
 def require_scope(actor: Actor, scope: str):
     if actor.kind != "owner" and scope not in actor.scopes:
         raise HTTPException(403, f"Scope required: {scope}")
+    if actor.kind=='agent':
+        from postchief.agents.policy import DEFAULTS,mode_for
+        if scope in DEFAULTS:
+            mode=mode_for(actor.db,actor.org_id,scope)
+            if mode=='DISABLED': raise HTTPException(403,'Action disabled by organization autonomy policy')
+            if mode=='APPROVAL' and not actor.managed_action:
+                raise HTTPException(403,'Owner approval required; submit this action through /api/agent/actions')
 
 
 class Login(BaseModel):

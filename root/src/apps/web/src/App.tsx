@@ -19,6 +19,7 @@ import type {
 } from "../../../packages/shared-types/src";
 import "./styles.css";
 import { Analytics } from "./Analytics";
+import { Agent } from "./Agent";
 
 const providers: ProviderName[] = [
   "bluesky",
@@ -163,6 +164,7 @@ export function App() {
             "Content",
             "Assets",
             "Analytics",
+            "Agent",
             "Connections",
             "GitHub",
           ].map((item) => (
@@ -283,6 +285,7 @@ export function App() {
                 <CampaignList rows={rows} open={setEditing} />
               )}
               {page === "Analytics" && <Analytics run={run} busy={busy} />}
+              {page === "Agent" && <Agent run={run} busy={busy} />}
               {page === "Planner" && <Planner rows={rows} open={setEditing} />}
               {page === "Assets" && (
                 <Assets assets={assets.data ?? []} run={run} busy={busy} />
