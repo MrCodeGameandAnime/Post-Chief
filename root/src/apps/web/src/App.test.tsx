@@ -12,6 +12,7 @@ afterEach(() => {
 });
 
 test('saves a draft with selected destination and session CSRF', async()=>{
+  const user=userEvent.setup();
   const writes:RequestInit[]=[];
   vi.stubGlobal('fetch',vi.fn(async(url:string,options:RequestInit)=>{
     if(options.method==='POST')writes.push(options);
@@ -20,8 +21,10 @@ test('saves a draft with selected destination and session CSRF', async()=>{
   }));
   mount();
   await userEvent.click(await screen.findByRole('button',{name:'New campaign'}));
-  await userEvent.type(screen.getByLabelText('Campaign title'),'Launch notes');
-  await userEvent.type(screen.getByLabelText('Master copy'),'A useful update');
+  await user.click(screen.getByLabelText('Campaign title'));
+  await user.paste('Launch notes');
+  await user.click(screen.getByLabelText('Master copy'));
+  await user.paste('A useful update');
   await userEvent.click(await screen.findByRole('checkbox',{name:'bluesky · 404 Builds'}));
   await userEvent.click(screen.getByRole('button',{name:'Save draft'}));
   await waitFor(()=>expect(writes).toHaveLength(1));

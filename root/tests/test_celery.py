@@ -18,7 +18,9 @@ def test_redis_dispatch_and_duplicate_delivery_publish_once(app, client):
     redis = Redis.from_url(url)
     assert redis.ping()
     settings = app.state.settings.model_copy(update={'redis_url': url})
-    provider = FakeProvider()
+    class QueueProvider(FakeProvider):
+        async def get_post_metrics(self,*args): return {'likes':7}
+    provider = QueueProvider()
     worker = create_worker(settings, provider_factory=lambda *args: provider)
     worker.conf.update(task_default_queue=prefix+'queue',
         broker_transport_options={'global_keyprefix':prefix,'visibility_timeout':600},
@@ -36,6 +38,12 @@ def test_redis_dispatch_and_duplicate_delivery_publish_once(app, client):
             if len(states) == 2:
                 complete.set()
     task_postrun.connect(finished, sender=publication_task, weak=False)
+    metrics_complete=Event()
+    metrics_states=[]
+    metrics_task=worker.tasks['postchief.analytics']
+    def metrics_finished(sender=None,state=None,**kwargs):
+        metrics_states.append(state);metrics_complete.set()
+    task_postrun.connect(metrics_finished,sender=metrics_task,weak=False)
     try:
         with start_worker(worker, pool='solo', perform_ping_check=False, loglevel='WARNING', shutdown_timeout=15):
             # Actual Redis messages exercise the production dispatcher and publication task.
@@ -43,10 +51,15 @@ def test_redis_dispatch_and_duplicate_delivery_publish_once(app, client):
             publication_task.delay(publication_id)
             assert complete.wait(15), 'Redis worker did not finish both deliveries'
             assert states == ['SUCCESS', 'SUCCESS']
+            worker.tasks['postchief.analytics_dispatch'].delay()
+            assert metrics_complete.wait(15),'Redis analytics worker did not finish collection'
+            assert metrics_states==['SUCCESS']
         assert provider.calls == 1
         assert client.get(f'/api/publications/{publication_id}').json()['status'] == 'published'
+        assert client.get('/api/analytics').json()[0]['latest']['metrics']['normalized']['likes']==7
     finally:
         task_postrun.disconnect(finished, sender=publication_task)
+        task_postrun.disconnect(metrics_finished,sender=metrics_task)
         worker.amqp.producer_pool.force_close_all()
         worker.pool.force_close_all()
         worker.close()

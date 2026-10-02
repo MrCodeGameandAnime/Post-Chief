@@ -89,6 +89,9 @@ class Publication(Scoped, Base):
     next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    analytics_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    analytics_next_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    analytics_error: Mapped[dict | None] = mapped_column(JSON)
 
 
 class CampaignAsset(Scoped, Base):

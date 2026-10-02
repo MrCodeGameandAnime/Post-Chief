@@ -1,5 +1,9 @@
 import { useState, type FormEvent } from "react";
-import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useInfiniteQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   request,
   send,
@@ -14,6 +18,7 @@ import type {
   ProviderName,
 } from "../../../packages/shared-types/src";
 import "./styles.css";
+import { Analytics } from "./Analytics";
 
 const providers: ProviderName[] = [
   "bluesky",
@@ -57,8 +62,12 @@ export function App() {
   const campaigns = useInfiniteQuery({
     queryKey: ["campaigns"],
     initialPageParam: 0,
-    queryFn: ({pageParam}) => request<Campaign[]>(pageParam ? `/campaigns?offset=${pageParam}&limit=100` : '/campaigns'),
-    getNextPageParam: (last, pages) => last.length===100 ? pages.length*100 : undefined,
+    queryFn: ({ pageParam }) =>
+      request<Campaign[]>(
+        pageParam ? `/campaigns?offset=${pageParam}&limit=100` : "/campaigns",
+      ),
+    getNextPageParam: (last, pages) =>
+      last.length === 100 ? pages.length * 100 : undefined,
     enabled,
     refetchInterval: 15000,
   });
@@ -81,7 +90,8 @@ export function App() {
       return true;
     } catch (e) {
       setError(message(e));
-      if(e instanceof ApiError && e.status===401) await cache.invalidateQueries({queryKey:['session']});
+      if (e instanceof ApiError && e.status === 401)
+        await cache.invalidateQueries({ queryKey: ["session"] });
       return false;
     } finally {
       setBusy(false);
@@ -152,6 +162,7 @@ export function App() {
             "Planner",
             "Content",
             "Assets",
+            "Analytics",
             "Connections",
             "GitHub",
           ].map((item) => (
@@ -175,8 +186,10 @@ export function App() {
               run(async () => {
                 await send("/auth/logout");
                 setCsrf("");
-                cache.setQueryData(['session'],null);
-                cache.removeQueries({predicate:query=>query.queryKey[0]!=='session'});
+                cache.setQueryData(["session"], null);
+                cache.removeQueries({
+                  predicate: (query) => query.queryKey[0] !== "session",
+                });
                 setEditing(null);
               })
             }
@@ -269,6 +282,7 @@ export function App() {
               {page === "Content" && (
                 <CampaignList rows={rows} open={setEditing} />
               )}
+              {page === "Analytics" && <Analytics run={run} busy={busy} />}
               {page === "Planner" && <Planner rows={rows} open={setEditing} />}
               {page === "Assets" && (
                 <Assets assets={assets.data ?? []} run={run} busy={busy} />
@@ -284,8 +298,15 @@ export function App() {
             </>
           )}
         </section>
-      {campaigns.hasNextPage && <button disabled={campaigns.isFetchingNextPage} onClick={()=>campaigns.fetchNextPage()}>Load older campaigns</button>}
-      <footer>
+        {campaigns.hasNextPage && (
+          <button
+            disabled={campaigns.isFetchingNextPage}
+            onClick={() => campaigns.fetchNextPage()}
+          >
+            Load older campaigns
+          </button>
+        )}
+        <footer>
           Post Chief · 404 Builds{" "}
           <span>Each destination keeps its own outcome.</span>
         </footer>

@@ -1,4 +1,27 @@
 @import "tailwindcss";
+.metrics {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 18px 0;
+  font-size: 0.85rem;
+}
+.metrics th,
+.metrics td {
+  text-align: left;
+  border-bottom: 1px solid #dce2d6;
+  padding: 10px;
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.75rem;
+  background: #edf1e7;
+  padding: 14px;
+  border-radius: 7px;
+}
+.panel + .panel {
+  margin-top: 18px;
+}
 :root {
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   color: #24352f;
