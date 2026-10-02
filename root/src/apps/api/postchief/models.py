@@ -91,6 +91,13 @@ class Publication(Scoped, Base):
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class CampaignAsset(Scoped, Base):
+    __tablename__ = "campaign_assets"
+    __table_args__ = (UniqueConstraint("campaign_id", "asset_id"),)
+    campaign_id: Mapped[str] = mapped_column(ForeignKey("campaigns.id", ondelete="CASCADE"), index=True)
+    asset_id: Mapped[str] = mapped_column(ForeignKey("assets.id", ondelete="RESTRICT"), index=True)
+
+
 class AnalyticsSnapshot(Scoped, Base):
     __tablename__ = "analytics_snapshots"
     publication_id: Mapped[str] = mapped_column(ForeignKey("publications.id"), index=True)

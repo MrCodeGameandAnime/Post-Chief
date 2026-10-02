@@ -88,3 +88,25 @@ class GitHubService:
         token = await self.authorized(installation, repo)
         endpoint = "releases" if kind == "releases" else "commits"
         return await self.request("GET", f"/repos/{repo}/{endpoint}?per_page=30", token)
+
+    async def read_binary(self, installation: int, repo: str, path: str, etag: str | None = None, max_bytes: int = 80*1024*1024):
+        encoded = self.content_path(path)
+        token = await self.authorized(installation,repo)
+        headers = {"Authorization":f"Bearer {token}","Accept":"application/vnd.github.raw+json","X-GitHub-Api-Version":"2022-11-28"}
+        if etag:
+            headers["If-None-Match"] = etag
+        try:
+            async with self.http.stream("GET",f"https://api.github.com/repos/{repo}/contents/{encoded}",headers=headers) as response:
+                if response.status_code == 304:
+                    return {"data":None,"etag":etag}
+                if response.is_error:
+                    status = response.status_code if response.status_code in (401,403,404,429) else 502
+                    raise GitHubError(status,"GitHub asset request failed")
+                data = bytearray()
+                async for chunk in response.aiter_bytes():
+                    data.extend(chunk)
+                    if len(data) > max_bytes:
+                        raise GitHubError(413,"GitHub asset exceeds the media size limit")
+                return {"data":bytes(data),"etag":response.headers.get("etag")}
+        except httpx.HTTPError:
+            raise GitHubError(502,"GitHub asset download is unavailable") from None

@@ -4,6 +4,9 @@ from postchief.auth import router as auth_router, bootstrap_owner
 from postchief.github.routes import router as github_router, webhooks
 from postchief.github.service import GitHubError
 from fastapi.responses import JSONResponse
+from postchief.campaigns.routes import router as campaigns_router
+from postchief.assets import router as assets_router
+from sqlalchemy.exc import IntegrityError
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
@@ -26,10 +29,16 @@ def create_app(settings: Settings | None = None):
     app.include_router(auth_router, prefix="/api")
     app.include_router(github_router, prefix="/api")
     app.include_router(webhooks, prefix="/api")
+    app.include_router(campaigns_router, prefix="/api")
+    app.include_router(assets_router, prefix="/api")
 
     @app.exception_handler(GitHubError)
     async def github_error(request, error):
         return JSONResponse(status_code=error.status, content={"detail":error.message})
+
+    @app.exception_handler(IntegrityError)
+    async def integrity_error(request,error):
+        return JSONResponse(status_code=409,content={"detail":"A referenced record changed; reload and retry"})
 
     @app.get("/api/health")
     def health():

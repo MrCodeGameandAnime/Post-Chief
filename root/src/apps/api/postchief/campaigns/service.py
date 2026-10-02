@@ -1,0 +1,74 @@
+from datetime import timezone
+from fastapi import HTTPException
+from sqlalchemy import delete, select
+from sqlalchemy.orm import Session
+from postchief.auth import Actor
+from postchief.models import Campaign, Publication, Asset, SocialAccount, AuditEvent, CampaignAsset
+from postchief.campaigns.schemas import CampaignCreate
+
+
+def iso(value):
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc).isoformat()
+
+
+def get_campaign(db: Session, org_id: str, campaign_id: str, lock=False):
+    query = select(Campaign).where(Campaign.org_id == org_id, Campaign.id == campaign_id)
+    if lock:
+        query = query.with_for_update()
+    row = db.scalar(query)
+    if not row:
+        raise HTTPException(404, "Campaign not found")
+    return row
+
+
+def check_refs(db: Session, org_id: str, data: CampaignCreate):
+    accounts = list(db.scalars(select(SocialAccount).where(SocialAccount.org_id == org_id, SocialAccount.id.in_(data.account_ids), SocialAccount.active.is_(True))))
+    if len(accounts) != len(data.account_ids):
+        raise HTTPException(404, "Connected account not found")
+    if set(data.overrides) - {a.provider for a in accounts}:
+        raise HTTPException(422, "Overrides must target a selected provider")
+    assets = set(data.asset_ids)
+    for override in data.overrides.values():
+        assets.update(override.asset_ids or [])
+    found = set(db.scalars(select(Asset.id).where(Asset.org_id == org_id, Asset.id.in_(assets))))
+    if assets != found:
+        raise HTTPException(404, "Asset not found")
+    return accounts
+
+
+def audit(db: Session, actor: Actor, action: str, details: dict):
+    db.add(AuditEvent(org_id=actor.org_id, actor_id=actor.id, action=action, details=details))
+
+
+def sync_assets(db: Session, row: Campaign):
+    db.execute(delete(CampaignAsset).where(CampaignAsset.campaign_id == row.id))
+    ids = set(row.asset_ids)
+    for override in row.overrides.values():
+        ids.update(override.get("asset_ids") or [])
+    db.add_all(CampaignAsset(org_id=row.org_id,campaign_id=row.id,asset_id=asset_id) for asset_id in ids)
+
+
+def serialize_publication(db: Session, row: Publication):
+    account = db.get(SocialAccount, row.account_id)
+    return {"id":row.id,"campaign_id":row.campaign_id,"account_id":row.account_id,"provider":account.provider,"account_name":account.name,"status":row.status,"provider_id":row.provider_id,"url":row.provider_url,"error":row.error,"attempts":row.attempts,"published_at":iso(row.published_at)}
+
+
+def serialize_campaign(db: Session, row: Campaign):
+    publications = list(db.scalars(select(Publication).where(Publication.campaign_id == row.id, Publication.org_id == row.org_id).order_by(Publication.created_at)))
+    return {"id":row.id,"title":row.title,"body":row.body,"asset_ids":row.asset_ids,"overrides":row.overrides,"scheduled_at":iso(row.scheduled_at),"created_at":iso(row.created_at),"status":row.status,"revision":row.revision,"github_path":row.github_path,"publications":[serialize_publication(db,p) for p in publications]}
+
+
+def create_campaign(db: Session, actor: Actor, data: CampaignCreate):
+    check_refs(db, actor.org_id, data)
+    row = Campaign(org_id=actor.org_id, title=data.title, body=data.body, asset_ids=data.asset_ids, overrides={k:v.model_dump(exclude_none=True) for k,v in data.overrides.items()}, scheduled_at=data.scheduled_at, github_path=data.github_path)
+    db.add(row)
+    db.flush()
+    db.add_all(Publication(org_id=actor.org_id, campaign_id=row.id, account_id=a) for a in data.account_ids)
+    sync_assets(db,row)
+    audit(db, actor, "campaign.create", {"campaign_id":row.id})
+    db.commit()
+    return serialize_campaign(db, row)

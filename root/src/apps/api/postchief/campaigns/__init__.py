@@ -1,0 +1,1 @@
+"""Campaign and publication state."""
