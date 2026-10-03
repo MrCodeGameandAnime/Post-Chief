@@ -37,6 +37,13 @@ Expanded TikTok business setup: configure the separate business client ID/secret
 7. **UI.** Inspect campaign maintenance and the feedback dialog on desktop and a mobile viewport. Check long captions, URLs, horizontal diffs, downloads and clipboard fallback.
 8. **Operations.** Choose an off-host backup destination, take an encrypted production backup with keys/source revision/media, and rehearse restoration into an isolated deployment with dispatch disabled. Follow [operations](operations.md). Existing synthetic recovery evidence does not establish an actual production backup.
 
+## Twitch owner acceptance
+
+- Configure the confidential Twitch application client ID/secret, register the exact public `/api/connections/oauth/twitch/callback`, and grant follower read access from the intended channel user.
+- Connect and collect channel/live/follower/video reports; inspect offline versus unavailable values, saved coverage/history and JSON export. Confirm that this connection cannot become a publishing destination.
+- Keep worker/scheduler running and review startup/hourly token-validation audits. Verify owner disconnect and native grant revocation invalidate the matching connection while preserving saved reports.
+- No Twitch authorization, native report or channel change has been performed during implementation. Live owner acceptance remains pending.
+
 ## Web/blog owner acceptance
 
 - Register the public `/api/connections/oauth/web/callback` in the Google web client and enable Analytics Admin/Data APIs. Grant read-only access, inspect the intended GA4 property and its timezone, then collect totals, daily rows and session channels. Confirm tracking was already installed and inspect reporting lag, threshold flags and bounded coverage.

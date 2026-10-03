@@ -1,9 +1,11 @@
 import asyncio
 from celery import Celery
+from celery.signals import worker_ready
 from sqlalchemy.orm import sessionmaker
 from postchief.db import make_engine
 from postchief.publishing.engine import due_publications,execute_publication
 from postchief.analytics.service import due_metrics,collect
+from postchief.providers.twitch_validation import due_validation,validate_connection
 
 def create_worker(settings, *, provider_factory=None):
     app=Celery('postchief',broker=settings.redis_url)
@@ -13,7 +15,8 @@ def create_worker(settings, *, provider_factory=None):
         broker_transport_options={'visibility_timeout':600},
         task_default_queue='postchief',timezone='UTC',enable_utc=True,
         beat_schedule={'due-publications':{'task':'postchief.dispatch','schedule':15.0},
-            'due-analytics':{'task':'postchief.analytics_dispatch','schedule':60.0}})
+            'due-analytics':{'task':'postchief.analytics_dispatch','schedule':60.0},
+            'twitch-validation':{'task':'postchief.twitch_validation_dispatch','schedule':60.0}})
 
     @app.task(name='postchief.dispatch', shared=False)
     def dispatch():
@@ -49,5 +52,24 @@ def create_worker(settings, *, provider_factory=None):
             kwargs={'provider_factory':provider_factory} if provider_factory else {}
             asyncio.run(collect(publication_id,sessionmaker(engine,expire_on_commit=False),settings,**kwargs))
         finally: engine.dispose()
+
+    @app.task(name='postchief.twitch_validation_dispatch',shared=False)
+    def twitch_validation_dispatch(startup=False):
+        engine=make_engine(settings.database_url)
+        try:
+            for account_id in due_validation(sessionmaker(engine,expire_on_commit=False),startup):
+                app.tasks['postchief.twitch_validate'].delay(account_id,startup)
+        finally: engine.dispose()
+
+    @app.task(name='postchief.twitch_validate',shared=False)
+    def twitch_validate(account_id,startup=False):
+        engine=make_engine(settings.database_url)
+        try: asyncio.run(validate_connection(account_id,sessionmaker(engine,expire_on_commit=False),settings,startup))
+        finally: engine.dispose()
+
+    def validate_on_start(sender=None,**kwargs):
+        if sender is not None and sender.app is app:
+            app.tasks['postchief.twitch_validation_dispatch'].delay(True)
+    worker_ready.connect(validate_on_start,weak=False)
 
     return app

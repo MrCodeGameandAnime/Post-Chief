@@ -44,6 +44,7 @@ const providers: ProviderName[] = [
   "gbp",
   "web",
   "blog",
+  "twitch",
   "bluesky",
   "linkedin",
 ];
@@ -1071,6 +1072,7 @@ function Connections({
           <article className="panel" key={provider}>
             <h3>{provider === "x" ? "X" : provider === "web" ? "Web · Google Analytics" : provider === "blog" ? "Blog · RSS/Atom" : provider === "gbp" ? "Google Business Profile" : provider === "tiktok_business" ? "TikTok business" : provider}</h3>
             {provider === "web" && <p className="muted">Connect existing GA4 properties with read-only Google consent. Collect saved totals, daily activity and channel reports in Analytics. Tracking must already be installed; this connection does not change your website.</p>}
+            {provider === "twitch" && <p className="muted">Read-only channel context, follower totals, current live viewers and recent video counters. Collect snapshots in Analytics. This connection cannot publish campaigns or start a broadcast.</p>}
             {provider === "gbp" && <p className="muted">Connect accessible business locations, then select the intended location as a campaign destination. Standard local posts use English text and an optional JPEG or PNG. Location performance reports are available in Analytics.</p>}
             {provider === "tiktok_business" && <p className="muted">Separate TikTok Accounts authorization for profile and recent post reports. Collect and export snapshots in Analytics. This connection cannot publish campaigns.</p>}
             {provider === "x" && (

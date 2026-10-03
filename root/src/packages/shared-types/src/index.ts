@@ -18,6 +18,7 @@ export type ProviderName =
   | "gbp"
   | "web"
   | "blog"
+  | "twitch"
   | "bluesky"
   | "linkedin";
 export interface Connection {

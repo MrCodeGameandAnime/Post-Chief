@@ -17,6 +17,7 @@ from provider_contracts import ProviderError, ErrorReason
 from postchief.providers.google import TOKEN_URL, token_credentials as google_tokens
 from postchief.providers.gbp import GoogleBusinessProvider, SCOPES as GBP_SCOPES
 from postchief.providers.web_analytics import WebAnalyticsProvider, SCOPES as WEB_SCOPES
+from postchief.providers.twitch import TwitchProvider, TOKEN as TWITCH_TOKEN, SCOPES as TWITCH_SCOPES, tokens as twitch_tokens
 from postchief.providers.youtube import YouTubeProvider, SCOPES as YOUTUBE_SCOPES, BASE as YOUTUBE_BASE, channel_id
 from postchief.providers.tiktok import TikTokProvider, SCOPES as TIKTOK_SCOPES, tokens as tiktok_tokens
 from postchief.providers.tiktok_business import TikTokBusinessProvider, authorization_url as business_authorization, token_credentials as business_tokens
@@ -32,6 +33,11 @@ class OAuthService:
 
     def authorization_url(self,provider,state):
         s=self.settings
+        if provider=='twitch':
+            if not s.twitch_client_id or not s.twitch_client_secret.get_secret_value():
+                raise HTTPException(503,'Configure the Twitch confidential client ID and secret before connecting')
+            return 'https://id.twitch.tv/oauth2/authorize?'+urlencode({'client_id':s.twitch_client_id,
+                'redirect_uri':self.redirect_uri(provider),'scope':TWITCH_SCOPES,'response_type':'code','state':state,'force_verify':'true'})
         if provider=='tiktok_business':
             return business_authorization(s, self.redirect_uri(provider), state)
         if provider=='tiktok':
@@ -94,6 +100,17 @@ class OAuthService:
 
     async def exchange(self,provider,code,state=None):
         s=self.settings
+        if provider=='twitch':
+            adapter=TwitchProvider(self.http,s)
+            value=await adapter.request('POST',TWITCH_TOKEN,rotation=True,data={'client_id':s.twitch_client_id,
+                'client_secret':s.twitch_client_secret.get_secret_value(),'grant_type':'authorization_code',
+                'redirect_uri':self.redirect_uri(provider),'code':code})
+            credentials=twitch_tokens(value)
+            verified=await adapter.inspect(credentials)
+            credentials.update(id=verified['user_id'],scopes=verified['scopes'])
+            profile=await adapter.profile(credentials)
+            return [{'provider':'twitch','id':credentials['id'],'name':profile['name'],'credentials':credentials,
+                'expires_at':datetime.fromisoformat(credentials['expires_at'])}]
         if provider in ('gbp','web'):
             value=await self.request('POST',TOKEN_URL,data={'client_id':s.google_client_id,
                 'client_secret':s.google_client_secret.get_secret_value(),'grant_type':'authorization_code',

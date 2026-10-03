@@ -9,6 +9,7 @@ from postchief.providers.tiktok_business import TikTokBusinessProvider
 from postchief.providers.gbp import GoogleBusinessProvider
 from postchief.providers.web_analytics import WebAnalyticsProvider
 from postchief.providers.blog import BlogProvider
+from postchief.providers.twitch import TwitchProvider
 from provider_contracts import ProviderError, ErrorReason
 
 PROVIDERS = {"bluesky":BlueskyProvider,"facebook":FacebookProvider,"instagram":InstagramProvider,"threads":ThreadsProvider,"linkedin":LinkedInProvider,"x":XProvider}
@@ -19,6 +20,7 @@ PROVIDERS['tiktok_business'] = TikTokBusinessProvider
 PROVIDERS['gbp'] = GoogleBusinessProvider
 PROVIDERS['web'] = WebAnalyticsProvider
 PROVIDERS['blog'] = BlogProvider
+PROVIDERS['twitch'] = TwitchProvider
 
 
 def get_provider(name, client, settings=None):
