@@ -16,6 +16,7 @@ from postchief.providers.pinterest import PinterestProvider, SCOPES as PINTEREST
 from provider_contracts import ProviderError, ErrorReason
 from postchief.providers.google import TOKEN_URL, token_credentials as google_tokens
 from postchief.providers.youtube import YouTubeProvider, SCOPES as YOUTUBE_SCOPES, BASE as YOUTUBE_BASE, channel_id
+from postchief.providers.tiktok import TikTokProvider, SCOPES as TIKTOK_SCOPES, tokens as tiktok_tokens
 
 router=APIRouter(tags=['OAuth connections'])
 
@@ -27,6 +28,11 @@ class OAuthService:
 
     def authorization_url(self,provider,state):
         s=self.settings
+        if provider=='tiktok':
+            if not s.tiktok_client_key or not s.tiktok_client_secret.get_secret_value():
+                raise HTTPException(503,'Configure the TikTok Login Kit client key and secret before connecting')
+            return 'https://www.tiktok.com/v2/auth/authorize/?'+urlencode({'client_key':s.tiktok_client_key,
+                'redirect_uri':self.redirect_uri(provider),'scope':TIKTOK_SCOPES,'response_type':'code','state':state,'disable_auto_auth':1})
         if provider=='youtube':
             if not s.google_client_id or not s.google_client_secret.get_secret_value():
                 raise HTTPException(503,'Configure the Google OAuth web client ID and secret before connecting')
@@ -82,6 +88,18 @@ class OAuthService:
 
     async def exchange(self,provider,code,state=None):
         s=self.settings
+        if provider=='tiktok':
+            adapter=TikTokProvider(self.http,s)
+            value=await adapter.request('POST','oauth/token/',data={'client_key':s.tiktok_client_key,
+                'client_secret':s.tiktok_client_secret.get_secret_value(),'grant_type':'authorization_code',
+                'redirect_uri':self.redirect_uri(provider),'code':code})
+            credentials=tiktok_tokens(value)
+            if set(TIKTOK_SCOPES.split(','))-set(credentials['scopes']):
+                raise ProviderError(ErrorReason.PERMISSION_MISSING,'Grant the requested TikTok profile, video list and inbox upload scopes, then reconnect')
+            profile=await adapter.profile(credentials)
+            credentials.update(profile=profile)
+            return [{'provider':'tiktok','id':credentials['id'],'name':profile['display_name'],'credentials':credentials,
+                'expires_at':datetime.fromisoformat(credentials['expires_at'])}]
         if provider=='youtube':
             value=await self.request('POST',TOKEN_URL,data={'client_id':s.google_client_id,
                 'client_secret':s.google_client_secret.get_secret_value(),'grant_type':'authorization_code',

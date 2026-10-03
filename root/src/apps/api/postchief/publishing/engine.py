@@ -33,6 +33,7 @@ def campaign_status(db,campaign):
     statuses=list(db.scalars(select(Publication.status).where(Publication.campaign_id==campaign.id)))
     if all(s=='published' for s in statuses): campaign.status='published'
     elif any(s in ('pending','retrying','processing') for s in statuses): campaign.status='publishing'
+    elif 'awaiting_owner' in statuses: campaign.status='awaiting_owner'
     elif 'published' in statuses: campaign.status='partial'
     elif all(s=='cancelled' for s in statuses): campaign.status='draft'
     else: campaign.status='failed'
@@ -82,6 +83,8 @@ async def execute_publication(publication_id,sessions,settings,provider_factory=
             try:
                 if account.provider=='youtube':
                     state.setdefault('youtube',provider.validate_options(campaign.overrides.get('youtube',{}).get('youtube'),campaign.title))
+                if account.provider=='tiktok':
+                    state.setdefault('tiktok',provider.validate_options(campaign.overrides.get('tiktok',{}).get('tiktok')))
                 if not account.active or not account.credentials: raise ProviderError(ErrorReason.AUTH_REVOKED,'Reconnect this account')
                 credentials=vault.decrypt(account.credentials)
                 original_credentials=deepcopy(credentials)
@@ -103,7 +106,7 @@ async def execute_publication(publication_id,sessions,settings,provider_factory=
             if account.provider=='x':
                 credentials=await current_x_credentials(sessions,settings,account_id,org_id,provider)
                 original_credentials=deepcopy(credentials)
-            elif account.provider in ('pinterest','youtube'):
+            elif account.provider in ('pinterest','youtube','tiktok'):
                 credentials=await current_x_credentials(sessions,settings,account_id,org_id,provider,provider_name=account.provider)
                 original_credentials=deepcopy(credentials)
             elif credentials.get('expires_at') and utc(datetime.fromisoformat(credentials['expires_at']))<now+timedelta(days=1):
@@ -133,8 +136,8 @@ async def execute_publication(publication_id,sessions,settings,provider_factory=
                 pub.published_at=datetime.now(timezone.utc); pub.error=None; pub.next_attempt_at=None
             elif pending:
                 state.update(pending.state)
-                pub.status='retrying'; pub.error=None
-                pub.next_attempt_at=datetime.now(timezone.utc)+timedelta(seconds=max(1,min(pending.retry_after,300)))
+                pub.status=pending.status if pending.status=='awaiting_owner' else 'retrying'; pub.error=None
+                pub.next_attempt_at=None if pub.status=='awaiting_owner' else datetime.now(timezone.utc)+timedelta(seconds=max(1,min(pending.retry_after,300)))
             else:
                 pub.error=error.to_dict(); retries=int(state.get('_retry_count',0))+1; state['_retry_count']=retries
                 if error.retryable and not error.uncertain and retries<=MAX_RETRIES:

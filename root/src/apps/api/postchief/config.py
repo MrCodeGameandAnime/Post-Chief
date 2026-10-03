@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     pinterest_client_secret: SecretStr = SecretStr("")
     google_client_id: str = ""
     google_client_secret: SecretStr = SecretStr("")
+    tiktok_client_key: str = ""
+    tiktok_client_secret: SecretStr = SecretStr("")
     linkedin_client_id: str = ""
     linkedin_client_secret: SecretStr = SecretStr("")
     meta_api_version: str = "v25.0"

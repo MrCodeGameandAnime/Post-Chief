@@ -24,6 +24,7 @@ import { Feedback } from "./Feedback";
 import { XHandoff } from "./XHandoff";
 import { PinterestBoards } from "./PinterestBoards";
 import { YouTubeOptions } from "./YouTubeOptions";
+import { TikTokOptions } from "./TikTokOptions";
 import {
   AddDestination,
   DestinationDelivery,
@@ -37,6 +38,7 @@ const providers: ProviderName[] = [
   "x",
   "pinterest",
   "youtube",
+  "tiktok",
   "bluesky",
   "linkedin",
 ];
@@ -630,6 +632,10 @@ function Editor({
                 <summary>{provider} copy & media</summary>
                 {provider === "youtube" && <YouTubeOptions title={title} value={overrides.youtube?.youtube}
                   change={youtube => setOverrides({ ...overrides, youtube: { ...overrides.youtube, youtube } })} />}
+                {provider === "tiktok" && <TikTokOptions accountId={accounts.find(a => a.provider === provider && destinations.includes(a.id))!.id}
+                  body={overrides.tiktok?.body ?? body} assets={assets.filter(a => (overrides.tiktok?.asset_ids ?? media).includes(a.id))}
+                  consent={overrides.tiktok?.tiktok?.consent_to_inbox ?? false}
+                  change={consent_to_inbox => setOverrides(previous => ({ ...previous, tiktok: { ...previous.tiktok, tiktok: { consent_to_inbox } } }))} />}
                 <label>
                   Copy for {provider}
                   <textarea
@@ -787,6 +793,8 @@ function Editor({
                 {pub.provider} · {pub.account_name}
               </strong>
               <p>{pub.status}</p>
+              {pub.status === "awaiting_owner" && <><p>Open your TikTok inbox and finish posting, then refresh the status here.</p>
+                <button disabled={busy} onClick={() => run(() => send("/publications/" + pub.id + "/tiktok/status"))}>Refresh TikTok completion</button></>}
               {pub.provider_metadata && <p className="muted">
                 Visibility: {pub.provider_metadata.visibility ?? "Awaiting confirmation"} · Processing: {pub.provider_metadata.processing_status ?? "Not reported"}
                 {pub.provider_metadata.url && !pub.url && <> · <a href={pub.provider_metadata.url} target="_blank" rel="noreferrer">Review uploaded video ↗</a></>}

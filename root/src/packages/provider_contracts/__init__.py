@@ -50,8 +50,9 @@ class PublishResult:
 
 
 class PublicationPending(Exception):
-    def __init__(self, state: dict, retry_after: int = 30):
+    def __init__(self, state: dict, retry_after: int = 30, status: str = 'retrying'):
         self.state, self.retry_after = state, retry_after
+        self.status = status
         super().__init__("Provider is processing media")
 
 

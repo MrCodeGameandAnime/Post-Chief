@@ -78,7 +78,7 @@ async def collect(publication_id,sessions,settings,provider_factory=get_provider
                 if provider_name=='x':
                     credentials=await current_x_credentials(sessions,settings,account_id,org_id,provider)
                     original=deepcopy(credentials)
-                elif provider_name in ('pinterest','youtube'):
+                elif provider_name in ('pinterest','youtube','tiktok'):
                     credentials=await current_x_credentials(sessions,settings,account_id,org_id,provider,provider_name=provider_name)
                     original=deepcopy(credentials)
                 elif credentials.get('expires_at') and utc(datetime.fromisoformat(credentials['expires_at']))<now+timedelta(days=1):

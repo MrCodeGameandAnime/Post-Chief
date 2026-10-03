@@ -4,6 +4,7 @@ export type PublicationStatus =
   | "published"
   | "failed"
   | "retrying"
+  | "awaiting_owner"
   | "cancelled";
 export type ProviderName =
   | "facebook"
@@ -12,6 +13,7 @@ export type ProviderName =
   | "x"
   | "pinterest"
   | "youtube"
+  | "tiktok"
   | "bluesky"
   | "linkedin";
 export interface Connection {
@@ -46,7 +48,7 @@ export interface Campaign {
   body: string;
   asset_ids: string[];
   overrides: Partial<
-    Record<ProviderName, { body?: string; asset_ids?: string[]; youtube?: YouTubeOptions }>
+    Record<ProviderName, { body?: string; asset_ids?: string[]; youtube?: YouTubeOptions; tiktok?: { consent_to_inbox: boolean } }>
   >;
   scheduled_at: string | null;
   status: string;

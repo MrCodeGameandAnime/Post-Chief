@@ -42,6 +42,9 @@ def start(campaign_id,at,request,actor,db):
         provider=get_provider(account.provider,None,request.app.state.settings)
         provider.validate(body,media)
         if account.provider=='youtube': provider.validate_options(row.overrides.get('youtube',{}).get('youtube'),row.title)
+        if account.provider=='tiktok':
+            if actor.kind!='owner': raise HTTPException(403,'TikTok inbox transfers require owner consent and delivery')
+            provider.validate_options(row.overrides.get('tiktok',{}).get('tiktok'))
     for pub in pubs: pub.status='pending'; pub.next_attempt_at=None
     row.scheduled_at=at; row.status='scheduled'; row.revision+=1
     audit(db,actor,'campaign.schedule',{'campaign_id':row.id,'scheduled_at':at.isoformat()})

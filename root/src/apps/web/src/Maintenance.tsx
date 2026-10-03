@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { request, send } from "../../../packages/api-client/src";
 import { YouTubeOptions } from "./YouTubeOptions";
+import { TikTokOptions } from "./TikTokOptions";
 import type { YouTubeOptions as VideoOptions } from "../../../packages/shared-types/src";
 import type {
   Campaign,
@@ -32,6 +33,7 @@ export function AddDestination({
   const [accountId, setAccountId] = useState("");
   const [body, setBody] = useState(campaign.body);
   const [youtube, setYouTube] = useState<VideoOptions | undefined>(campaign.overrides.youtube?.youtube);
+  const [tiktokConsent, setTikTokConsent] = useState(false);
   const account = available.find((a) => a.id === accountId);
   if (!available.length) return null;
   const media = account
@@ -82,6 +84,8 @@ export function AddDestination({
           .join(", ") || "Text only"}
       </p>
       {account?.provider === "youtube" && <YouTubeOptions title={campaign.title} value={youtube} change={setYouTube} />}
+      {account?.provider === "tiktok" && <TikTokOptions accountId={account.id} body={body}
+        assets={assets.filter(a => media.includes(a.id))} consent={tiktokConsent} change={setTikTokConsent} />}
       <button
         disabled={busy || !account}
         onClick={async () => {
@@ -92,6 +96,7 @@ export function AddDestination({
                 account_id: accountId,
                 body,
                 ...(account?.provider === "youtube" ? { youtube: youtube ?? { privacy_status: "private" } } : {}),
+                ...(account?.provider === "tiktok" ? { tiktok: { consent_to_inbox: tiktokConsent } } : {}),
               }),
             )
           )
@@ -117,6 +122,7 @@ export function DestinationDelivery({
   assets: Asset[];
 }) {
   const [at, setAt] = useState("");
+  const [tiktokConsent, setTikTokConsent] = useState(campaign.overrides.tiktok?.tiktok?.consent_to_inbox ?? false);
   const [youtube, setYouTube] = useState<VideoOptions | undefined>(campaign.overrides.youtube?.youtube);
   const [body, setBody] = useState(
     campaign.overrides[publication.provider]?.body ?? campaign.body,
@@ -131,6 +137,7 @@ export function DestinationDelivery({
   const dirty =
     body !== savedBody || JSON.stringify(media) !== JSON.stringify(savedMedia) ||
     (publication.provider === "youtube" && JSON.stringify(youtube) !== JSON.stringify(campaign.overrides.youtube?.youtube));
+  const optionsDirty = dirty || (publication.provider === "tiktok" && tiktokConsent !== (campaign.overrides.tiktok?.tiktok?.consent_to_inbox ?? false));
   const deliver = async (scheduled: boolean) => {
     if (
       await run(() =>
@@ -148,6 +155,8 @@ export function DestinationDelivery({
       <details>
         <summary>Edit this destination's draft</summary>
         {publication.provider === "youtube" && <YouTubeOptions title={campaign.title} value={youtube} change={setYouTube} />}
+        {publication.provider === "tiktok" && <TikTokOptions accountId={publication.account_id} body={body}
+          assets={assets.filter(a => media.includes(a.id))} consent={tiktokConsent} change={setTikTokConsent} />}
         <label>
           Copy
           <textarea
@@ -177,7 +186,7 @@ export function DestinationDelivery({
           ))}
         </fieldset>
         <button
-          disabled={busy || !dirty}
+          disabled={busy || !optionsDirty}
           onClick={async () => {
             if (
               await run(() =>
@@ -189,6 +198,7 @@ export function DestinationDelivery({
                     body,
                     asset_ids: media,
                     ...(publication.provider === "youtube" ? { youtube: youtube ?? { privacy_status: "private" } } : {}),
+                    ...(publication.provider === "tiktok" ? { tiktok: { consent_to_inbox: tiktokConsent } } : {}),
                   },
                   "PATCH",
                 ),
@@ -209,10 +219,10 @@ export function DestinationDelivery({
         />
       </label>
       <div className="toolbar">
-        <button disabled={busy || !at || dirty} onClick={() => deliver(true)}>
+        <button disabled={busy || !at || optionsDirty} onClick={() => deliver(true)}>
           Schedule {publication.provider} only
         </button>
-        <button disabled={busy || dirty} onClick={() => deliver(false)}>
+        <button disabled={busy || optionsDirty} onClick={() => deliver(false)}>
           Publish to {publication.provider} only
         </button>
       </div>
