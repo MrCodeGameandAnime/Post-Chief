@@ -45,6 +45,9 @@ const providers: ProviderName[] = [
   "web",
   "blog",
   "twitch",
+  "google_ads",
+  "meta_ads",
+  "tiktok_ads",
   "bluesky",
   "linkedin",
 ];
@@ -1070,9 +1073,10 @@ function Connections({
       <div className="connection-grid">
         {providers.map((provider) => (
           <article className="panel" key={provider}>
-            <h3>{provider === "x" ? "X" : provider === "web" ? "Web · Google Analytics" : provider === "blog" ? "Blog · RSS/Atom" : provider === "gbp" ? "Google Business Profile" : provider === "tiktok_business" ? "TikTok business" : provider}</h3>
+            <h3>{provider === "x" ? "X" : provider === "web" ? "Web · Google Analytics" : provider === "blog" ? "Blog · RSS/Atom" : provider === "gbp" ? "Google Business Profile" : provider === "tiktok_business" ? "TikTok business" : provider.replaceAll("_", " ")}</h3>
             {provider === "web" && <p className="muted">Connect existing GA4 properties with read-only Google consent. Collect saved totals, daily activity and channel reports in Analytics. Tracking must already be installed; this connection does not change your website.</p>}
             {provider === "twitch" && <p className="muted">Read-only channel context, follower totals, current live viewers and recent video counters. Collect snapshots in Analytics. This connection cannot publish campaigns or start a broadcast.</p>}
+            {["google_ads", "meta_ads", "tiktok_ads"].includes(provider) && <p className="muted">Read-only advertising reports in Analytics. Separate advertiser authorization is required. This connection cannot create ads, change budgets, or spend money. Reports preserve account currency and timezone.</p>}
             {provider === "gbp" && <p className="muted">Connect accessible business locations, then select the intended location as a campaign destination. Standard local posts use English text and an optional JPEG or PNG. Location performance reports are available in Analytics.</p>}
             {provider === "tiktok_business" && <p className="muted">Separate TikTok Accounts authorization for profile and recent post reports. Collect and export snapshots in Analytics. This connection cannot publish campaigns.</p>}
             {provider === "x" && (
@@ -1206,7 +1210,7 @@ function Connections({
                   })
                 }
               >
-                Connect {provider === "x" ? "X" : provider === "web" ? "Google Analytics" : provider === "gbp" ? "Google Business Profile" : provider === "tiktok_business" ? "TikTok business" : provider}
+                Connect {provider === "x" ? "X" : provider === "web" ? "Google Analytics" : provider === "gbp" ? "Google Business Profile" : provider === "tiktok_business" ? "TikTok business" : provider.replaceAll("_", " ")}
               </button>
             )}
           </article>

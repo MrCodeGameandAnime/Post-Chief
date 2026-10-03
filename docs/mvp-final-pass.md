@@ -57,6 +57,12 @@ Expanded TikTok business setup: configure the separate business client ID/secret
 - Collect post insights and a daily location report, inspect dates/missing counters, history and JSON export. Confirm location metrics stay distinct from post metrics and that feedback previews preserve the accepted resource/state.
 - No Google business location has been contacted or post created during implementation. OAuth, API eligibility and live performance availability remain unvalidated until this pass.
 
+## Advertising and Looker Studio owner acceptance
+
+- Follow [advertising reports](ads-reporting.md) for separate Meta ads_read consent, Google Ads developer-token/offline access and TikTok advertiser app/grant setup. Register each exact callback on the final stable public origin. Confirm intended ad account IDs, currency/timezone and native reports against provider dashboards for identical dates. No ad creation/budget/spend operation exists in these adapters.
+- Follow [Looker Studio](looker-studio.md) to deploy the private Apps Script Community Connector, verify the actual logo URL, configure its fixed HTTPS origin and create a revocable analytics:read-only key. Select a saved source/table, confirm raw/chart metric precision, date ranges, snapshot freshness and organization isolation. Review report sharing/credential settings and confirm revoked-key behavior.
+- Live native ads grants/report requests and Google Apps Script deployment have not been performed during implementation. Owner setup and live acceptance remain pending.
+
 ## Manual X record contract
 
 `POST /api/campaigns/{id}/external/x` requires an owner session, CSRF protection, the current campaign revision, actual `body`, `asset_ids`, an HTTPS X/Twitter status URL, timezone-aware `published_at` and `confirmed_published: true`. URLs are normalized to `x.com`, with tracking parameters removed; no external URL is fetched. Future timestamps and unsupported/cross-organization assets are rejected.

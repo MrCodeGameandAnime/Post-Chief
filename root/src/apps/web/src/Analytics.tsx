@@ -43,6 +43,11 @@ export function Analytics({ run, busy, campaigns = [], reportingEnabled = false 
   return (
     <>
       <AccountReports run={run} busy={busy} enabled={reportingEnabled} />
+      {reportingEnabled && <details className="panel"><summary>Looker Studio · saved report connector</summary>
+        <p>Connect Looker Studio to saved advertising reports and account snapshot counters using the private Post Chief Community Connector. Create a separate key in Agent with only analytics:read access and enter it in the connector’s authentication prompt.</p>
+        <p>Collect reports above before connecting. The connector reads saved snapshots; it does not refresh provider data. Choose one source table, metric and currency per chart. Collection time, coverage and native meanings remain visible.</p>
+        <p>Deploy the bundled Apps Script connector after Post Chief has a stable public HTTPS address. Revoke its key in Agent to stop future access. Previously extracted Looker data remains subject to its sharing settings.</p>
+      </details>}
       <p className="muted">
         Latest native metrics, grouped by destination. Missing values are
         unavailable. Counts keep their provider meaning.

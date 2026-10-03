@@ -43,8 +43,11 @@ class GraphProvider:
         try: value = response.json()
         except ValueError:
             raise ProviderError(ErrorReason.PROVIDER_ERROR,'Graph returned an invalid response',retryable=not public_write,uncertain=public_write)
+        if not isinstance(value,dict):
+            raise ProviderError(ErrorReason.PROVIDER_ERROR,'Graph returned an invalid response',retryable=not public_write,uncertain=public_write)
         if response.is_error or value.get('error'):
             error = value.get('error',{})
+            if not isinstance(error,dict): error={}
             code = error.get('code')
             if code == 190 or response.status_code == 401:
                 raise ProviderError(ErrorReason.AUTH_EXPIRED,'Reconnect this account')

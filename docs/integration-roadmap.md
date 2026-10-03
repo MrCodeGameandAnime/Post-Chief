@@ -15,8 +15,8 @@ A connection card is not a completed integration. Each gate needs authenticated 
 | 17 | Google Business Profile | OAuth, account/location selection, supported local-post creation/status and business performance | Implemented and deployed; CI passed; live owner acceptance pending |
 | 18 | Web and blog | Website analytics connection/data, RSS/Atom discovery and bounded ingestion into agent context; no fake social publication | Implemented and deployed; CI passed; live owner acceptance pending |
 | 19 | Twitch | OAuth, channel/account context, supported analytics/reporting; no generic feed-post capability | Implemented and locally deployed; typecheck/build/syntax checks and CI 37124241141 passed; live owner acceptance pending |
-| 20 | Meta Ads, Google Ads, TikTok Ads | OAuth/account selection, read-only account/campaign performance with explicit metric semantics and dates | Pending |
-| 21 | Looker Studio | Authenticated reporting/export contract or connector, access controls and stable schemas | Pending |
+| 20 | Meta Ads, Google Ads, TikTok Ads | OAuth/account selection, read-only account/campaign performance with explicit metric semantics and dates | Implemented; source review and build/deployment checks in progress; live owner acceptance pending |
+| 21 | Looker Studio | Authenticated reporting/export contract or connector, access controls and stable schemas | Implemented export v1 and private Apps Script connector; build/deployment checks in progress; owner connector deployment pending |
 
 LinkedIn and Bluesky already have adapters but remain deferred for owner acceptance, per prior direction. Their presence does not substitute for any newly requested integration. Facebook, Instagram, Threads and X remain supported throughout expansion.
 
@@ -40,6 +40,7 @@ LinkedIn and Bluesky already have adapters but remain deferred for owner accepta
 - [x] Gate 17: implement Google business.manage consent and bounded location discovery, STANDARD local posts with persisted accepted identity/LIVE polling, scoped post insights and daily location performance reports. Local verification and deployment evidence follow separately; live acceptance remains pending.
 - [x] Gate 18: implement readonly GA4 property discovery/totals/daily/channel reports and bounded public RSS/Atom discovery/source snapshots, shared history/export/agent scopes and reporting-only campaign guards. Local verification and deployment evidence follow separately; live acceptance remains pending.
 - [x] Gate 19: implement Twitch consent, grant/client/user validation and serialized renewal, channel/live/follower/recent-video reports and worker startup/hourly validation. Read-only reports share history/export, agent scopes and campaign guards; live acceptance remains pending.
-- [ ] Gates 20–21: continue with read-only ads reports and Looker Studio.
+- [x] Gate 20: wire separate Meta ads_read, Google Ads offline grants/developer token and TikTok advertiser grants, bounded account discovery and account/campaign reports; saved snapshots/history/export/agent scope reuse, campaign guards and final owner checklist. Build/deployment and native acceptance are separate evidence.
+- [x] Gate 21: authenticated versioned saved-report sources/schema/data, private KEY-auth Apps Script connector, organization isolation and revocation; native precision/currency/timezone/grain/coverage preserved. Final Google connector deployment/acceptance remains pending.
 
 Official initial sources: [Pinterest OpenAPI](https://github.com/pinterest/api-description), [Pinterest authorization](https://developers.pinterest.com/docs/getting-started/set-up-authentication-and-authorization/), [YouTube uploads](https://developers.google.com/youtube/v3/docs/videos/insert), [TikTok publishing requirements](https://developers.tiktok.com/doc/content-sharing-guidelines).

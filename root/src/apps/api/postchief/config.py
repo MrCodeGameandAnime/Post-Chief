@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     pinterest_client_secret: SecretStr = SecretStr("")
     google_client_id: str = ""
     google_client_secret: SecretStr = SecretStr("")
+    google_ads_developer_token: SecretStr = SecretStr("")
+    tiktok_ads_app_id: str = ""
+    tiktok_ads_secret: SecretStr = SecretStr("")
+    tiktok_ads_authorization_url: str = ""
     twitch_client_id: str = ""
     twitch_client_secret: SecretStr = SecretStr("")
     tiktok_client_key: str = ""

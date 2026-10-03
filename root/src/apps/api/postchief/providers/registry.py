@@ -10,6 +10,9 @@ from postchief.providers.gbp import GoogleBusinessProvider
 from postchief.providers.web_analytics import WebAnalyticsProvider
 from postchief.providers.blog import BlogProvider
 from postchief.providers.twitch import TwitchProvider
+from postchief.providers.google_ads import GoogleAdsProvider
+from postchief.providers.meta_ads import MetaAdsProvider
+from postchief.providers.tiktok_ads import TikTokAdsProvider
 from provider_contracts import ProviderError, ErrorReason
 
 PROVIDERS = {"bluesky":BlueskyProvider,"facebook":FacebookProvider,"instagram":InstagramProvider,"threads":ThreadsProvider,"linkedin":LinkedInProvider,"x":XProvider}
@@ -21,6 +24,9 @@ PROVIDERS['gbp'] = GoogleBusinessProvider
 PROVIDERS['web'] = WebAnalyticsProvider
 PROVIDERS['blog'] = BlogProvider
 PROVIDERS['twitch'] = TwitchProvider
+PROVIDERS['google_ads'] = GoogleAdsProvider
+PROVIDERS['meta_ads'] = MetaAdsProvider
+PROVIDERS['tiktok_ads'] = TikTokAdsProvider
 
 
 def get_provider(name, client, settings=None):

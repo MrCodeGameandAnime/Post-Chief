@@ -1,4 +1,5 @@
 import secrets
+import asyncio
 import base64
 import hashlib
 from datetime import datetime, timedelta, timezone
@@ -17,6 +18,9 @@ from provider_contracts import ProviderError, ErrorReason
 from postchief.providers.google import TOKEN_URL, token_credentials as google_tokens
 from postchief.providers.gbp import GoogleBusinessProvider, SCOPES as GBP_SCOPES
 from postchief.providers.web_analytics import WebAnalyticsProvider, SCOPES as WEB_SCOPES
+from postchief.providers.google_ads import GoogleAdsProvider, SCOPES as GOOGLE_ADS_SCOPES
+from postchief.providers.meta_ads import MetaAdsProvider
+from postchief.providers.tiktok_ads import TikTokAdsProvider, authorization_url as ads_authorization
 from postchief.providers.twitch import TwitchProvider, TOKEN as TWITCH_TOKEN, SCOPES as TWITCH_SCOPES, tokens as twitch_tokens
 from postchief.providers.youtube import YouTubeProvider, SCOPES as YOUTUBE_SCOPES, BASE as YOUTUBE_BASE, channel_id
 from postchief.providers.tiktok import TikTokProvider, SCOPES as TIKTOK_SCOPES, tokens as tiktok_tokens
@@ -33,6 +37,8 @@ class OAuthService:
 
     def authorization_url(self,provider,state):
         s=self.settings
+        if provider=='tiktok_ads':
+            return ads_authorization(s, self.redirect_uri(provider), state)
         if provider=='twitch':
             if not s.twitch_client_id or not s.twitch_client_secret.get_secret_value():
                 raise HTTPException(503,'Configure the Twitch confidential client ID and secret before connecting')
@@ -45,11 +51,11 @@ class OAuthService:
                 raise HTTPException(503,'Configure the TikTok Login Kit client key and secret before connecting')
             return 'https://www.tiktok.com/v2/auth/authorize/?'+urlencode({'client_key':s.tiktok_client_key,
                 'redirect_uri':self.redirect_uri(provider),'scope':TIKTOK_SCOPES,'response_type':'code','state':state,'disable_auto_auth':1})
-        if provider in ('youtube','gbp','web'):
+        if provider in ('youtube','gbp','web','google_ads'):
             if not s.google_client_id or not s.google_client_secret.get_secret_value():
                 raise HTTPException(503,'Configure the Google OAuth web client ID and secret before connecting')
             return 'https://accounts.google.com/o/oauth2/v2/auth?'+urlencode({'client_id':s.google_client_id,
-                'redirect_uri':self.redirect_uri(provider),'scope':{'gbp':GBP_SCOPES,'web':WEB_SCOPES,'youtube':YOUTUBE_SCOPES}[provider],'response_type':'code','state':state,
+                'redirect_uri':self.redirect_uri(provider),'scope':{'gbp':GBP_SCOPES,'web':WEB_SCOPES,'youtube':YOUTUBE_SCOPES,'google_ads':GOOGLE_ADS_SCOPES}[provider],'response_type':'code','state':state,
                 'access_type':'offline','prompt':'consent'})
         if provider=='x':
             if not s.x_client_id or not s.x_client_secret.get_secret_value():
@@ -62,10 +68,10 @@ class OAuthService:
             app,secret=s.pinterest_client_id,s.pinterest_client_secret.get_secret_value()
             endpoint='https://www.pinterest.com/oauth/'
             scope=PINTEREST_SCOPES
-        elif provider=='meta':
+        elif provider in ('meta','meta_ads'):
             app,secret=s.meta_client_id,s.meta_client_secret.get_secret_value()
             endpoint=f'https://www.facebook.com/{s.meta_api_version}/dialog/oauth'
-            scope='business_management,pages_show_list,pages_read_engagement,pages_read_user_content,pages_manage_posts,instagram_basic,instagram_content_publish,instagram_manage_insights'
+            scope='ads_read' if provider=='meta_ads' else 'business_management,pages_show_list,pages_read_engagement,pages_read_user_content,pages_manage_posts,instagram_basic,instagram_content_publish,instagram_manage_insights'
         elif provider=='threads':
             app,secret=s.threads_client_id,s.threads_client_secret.get_secret_value()
             endpoint='https://threads.net/oauth/authorize'
@@ -84,6 +90,8 @@ class OAuthService:
             value=response.json()
         except (httpx.HTTPError,ValueError):
             raise ProviderError(ErrorReason.NETWORK_ERROR,'Authorization exchange failed; start connection again')
+        if not isinstance(value,dict):
+            raise ProviderError(ErrorReason.PROVIDER_ERROR,'Authorization returned an invalid response; start connection again')
         if response.is_error or value.get('error'):
             message='Authorization failed; check app configuration and consent'
             if failure_stage:
@@ -100,6 +108,13 @@ class OAuthService:
 
     async def exchange(self,provider,code,state=None):
         s=self.settings
+        if provider=='tiktok_ads':
+            adapter=TikTokAdsProvider(self.http,s)
+            value=await adapter.request('POST','oauth2/access_token/',json={'app_id':s.tiktok_ads_app_id,'secret':s.tiktok_ads_secret.get_secret_value(),'auth_code':code})
+            access=value.get('access_token')
+            if not isinstance(access,str) or not 0<len(access)<=4096:
+                raise ProviderError(ErrorReason.AUTH_REVOKED,'TikTok did not return an advertiser grant; reconnect')
+            return await adapter.discover({'access_token':access})
         if provider=='twitch':
             adapter=TwitchProvider(self.http,s)
             value=await adapter.request('POST',TWITCH_TOKEN,rotation=True,data={'client_id':s.twitch_client_id,
@@ -111,16 +126,16 @@ class OAuthService:
             profile=await adapter.profile(credentials)
             return [{'provider':'twitch','id':credentials['id'],'name':profile['name'],'credentials':credentials,
                 'expires_at':datetime.fromisoformat(credentials['expires_at'])}]
-        if provider in ('gbp','web'):
+        if provider in ('gbp','web','google_ads'):
             value=await self.request('POST',TOKEN_URL,data={'client_id':s.google_client_id,
                 'client_secret':s.google_client_secret.get_secret_value(),'grant_type':'authorization_code',
                 'redirect_uri':self.redirect_uri(provider),'code':code})
             credentials=google_tokens(value)
-            required=GBP_SCOPES if provider=='gbp' else WEB_SCOPES
+            required={'gbp':GBP_SCOPES,'web':WEB_SCOPES,'google_ads':GOOGLE_ADS_SCOPES}[provider]
             if not isinstance(value.get('scope'),str) or required not in value['scope'].split():
                 raise ProviderError(ErrorReason.PERMISSION_MISSING,'Grant the requested Google scope and reconnect')
             credentials['scopes']=value['scope'].split()
-            adapter=GoogleBusinessProvider(self.http,s) if provider=='gbp' else WebAnalyticsProvider(self.http,s)
+            adapter={'gbp':GoogleBusinessProvider,'web':WebAnalyticsProvider,'google_ads':GoogleAdsProvider}[provider](self.http,s)
             return await adapter.discover(credentials)
         if provider=='tiktok_business':
             adapter=TikTokBusinessProvider(self.http,s)
@@ -218,6 +233,12 @@ class OAuthService:
             'client_secret':s.meta_client_secret.get_secret_value(),'redirect_uri':self.redirect_uri(provider),'code':code})
         long=await self.request('GET',base+'/oauth/access_token',params={'client_id':s.meta_client_id,
             'client_secret':s.meta_client_secret.get_secret_value(),'grant_type':'fb_exchange_token','fb_exchange_token':short['access_token']})
+        if provider=='meta_ads':
+            access,seconds=long.get('access_token'),long.get('expires_in')
+            if not isinstance(access,str) or not access or type(seconds) is not int or not 0<seconds<=31536000:
+                raise ProviderError(ErrorReason.AUTH_REVOKED,'Meta did not return a valid dated user grant; reconnect')
+            expires=datetime.now(timezone.utc)+timedelta(seconds=seconds)
+            return await MetaAdsProvider(self.http,s).discover({'access_token':access,'expires_at':expires.isoformat()})
         params={'fields':'id,name,access_token,tasks,instagram_business_account{id,username}','limit':100}
         result=[]
         # Follow cursors against a fixed origin; never follow URLs carrying tokens.
@@ -255,7 +276,7 @@ def authorize(provider:str,actor:Actor=Depends(require_owner),db:Session=Depends
 
 @router.get('/connections/oauth/{provider}/callback')
 @router.get('/connections/oauth/{provider}/callback/',include_in_schema=False)
-async def callback(provider:str,request:Request,state:str|None=None,code:str|None=None,error:str|None=None,error_code:str|None=None,
+async def callback(provider:str,request:Request,state:str|None=None,code:str|None=None,auth_code:str|None=None,error:str|None=None,error_code:str|None=None,
                    actor:Actor=Depends(require_owner),db:Session=Depends(get_db),service=Depends(get_oauth_service)):
     rejected=bool(error or error_code)
     rejection='Authorization failed; check the provider app permissions and OAuth settings, then start again from Post Chief Connections'
@@ -269,8 +290,13 @@ async def callback(provider:str,request:Request,state:str|None=None,code:str|Non
         OAuthState.expires_at>datetime.now(timezone.utc)).values(consumed=True))
     db.commit()
     if consumed.rowcount!=1: raise HTTPException(400,'OAuth state is invalid, expired or already used')
+    if provider=='tiktok_ads': code=auth_code or code
     if rejected or not code: raise HTTPException(400,rejection)
-    accounts=await service.exchange(provider,code,state) if provider=='x' else await service.exchange(provider,code)
+    try:
+        exchange=service.exchange(provider,code,state) if provider=='x' else service.exchange(provider,code)
+        accounts=await asyncio.wait_for(exchange,timeout=180) if provider in ('google_ads','meta_ads','tiktok_ads') else await exchange
+    except TimeoutError:
+        raise HTTPException(503,'Advertiser discovery timed out; start a fresh connection with a narrower account grant')
     connected=[]
     for account in accounts:
         connected.append(save_connection(db,request.app.state.settings,actor,account['provider'],account['id'],account['name'],account['credentials'],account.get('expires_at')))

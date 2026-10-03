@@ -1,0 +1,15 @@
+{
+  "timeZone": "Etc/UTC",
+  "runtimeVersion": "V8",
+  "exceptionLogging": "NONE",
+  "oauthScopes": ["https://www.googleapis.com/auth/script.external_request"],
+  "dataStudio": {
+    "name": "Post Chief saved reports",
+    "company": "404 Builds",
+    "companyUrl": "https://404builds.com",
+    "logoUrl": "https://404builds.com/favicon.ico",
+    "addonUrl": "https://github.com/MrCodeGameandAnime/Post-Chief",
+    "supportUrl": "https://github.com/MrCodeGameandAnime/Post-Chief/issues",
+    "description": "Authenticated read-only Post Chief snapshots with native currency, dates, meanings and coverage."
+  }
+}

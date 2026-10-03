@@ -19,6 +19,9 @@ export type ProviderName =
   | "web"
   | "blog"
   | "twitch"
+  | "google_ads"
+  | "meta_ads"
+  | "tiktok_ads"
   | "bluesky"
   | "linkedin";
 export interface Connection {
