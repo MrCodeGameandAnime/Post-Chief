@@ -15,8 +15,8 @@ A connection card is not a completed integration. Each gate needs authenticated 
 | 17 | Google Business Profile | OAuth, account/location selection, supported local-post creation/status and business performance | Implemented and deployed; CI passed; live owner acceptance pending |
 | 18 | Web and blog | Website analytics connection/data, RSS/Atom discovery and bounded ingestion into agent context; no fake social publication | Implemented and deployed; CI passed; live owner acceptance pending |
 | 19 | Twitch | OAuth, channel/account context, supported analytics/reporting; no generic feed-post capability | Implemented and locally deployed; typecheck/build/syntax checks and CI 37124241141 passed; live owner acceptance pending |
-| 20 | Meta Ads, Google Ads, TikTok Ads | OAuth/account selection, read-only account/campaign performance with explicit metric semantics and dates | Implemented; source review and build/deployment checks in progress; live owner acceptance pending |
-| 21 | Looker Studio | Authenticated reporting/export contract or connector, access controls and stable schemas | Implemented export v1 and private Apps Script connector; build/deployment checks in progress; owner connector deployment pending |
+| 20 | Meta Ads, Google Ads, TikTok Ads | OAuth/account selection, read-only account/campaign performance with explicit metric semantics and dates | Implemented and locally deployed; build/type/syntax checks and CI 37134653950 passed; live owner acceptance pending |
+| 21 | Looker Studio | Authenticated reporting/export contract or connector, access controls and stable schemas | Implemented export v1 and private Apps Script connector; locally deployed; build/type/syntax checks and CI 37134653950 passed; owner connector deployment pending |
 
 LinkedIn and Bluesky already have adapters but remain deferred for owner acceptance, per prior direction. Their presence does not substitute for any newly requested integration. Facebook, Instagram, Threads and X remain supported throughout expansion.
 
@@ -44,3 +44,13 @@ LinkedIn and Bluesky already have adapters but remain deferred for owner accepta
 - [x] Gate 21: authenticated versioned saved-report sources/schema/data, private KEY-auth Apps Script connector, organization isolation and revocation; native precision/currency/timezone/grain/coverage preserved. Final Google connector deployment/acceptance remains pending.
 
 Official initial sources: [Pinterest OpenAPI](https://github.com/pinterest/api-description), [Pinterest authorization](https://developers.pinterest.com/docs/getting-started/set-up-authentication-and-authorization/), [YouTube uploads](https://developers.google.com/youtube/v3/docs/videos/insert), [TikTok publishing requirements](https://developers.tiktok.com/doc/content-sharing-guidelines).
+
+## October 3 resumed continuation: Gates 20–21
+
+Ads reporting and Looker Studio shipped in 7b001ce1f0bde2a7909e58e774c212b1447202a0, pushed to main. Meta ads_read, Google Ads offline grants/developer token and separate TikTok advertiser authorization support bounded account discovery and read-only native performance reports. Existing saved reports, history, authenticated export, agent scopes and reporting-only campaign guards are reused. Native dates, currency, precision, missing values and coverage remain explicit. See docs/ads-reporting.md.
+
+Looker Studio now has organization-scoped, analytics:read authenticated v1 sources/schema/data endpoints and a private KEY-auth Apps Script connector. It reads saved snapshots without triggering provider collection, preserves native precision and reporting windows, and supports immediate key revocation. Apps Script deployment and stable public HTTPS hosting remain pending. See docs/looker-studio.md.
+
+Typecheck, production build, 66 Python AST parses, Node syntax, manifest JSON parsing and whitespace checks passed. Existing CI 37134653950 passed Frontend, Container smoke, API postgres and API sqlite. Docker API/worker/scheduler rebuilt and deployed; deployed provider registration, Looker routes and /api/health 200 confirmed. No tests added or run locally. No provider account grants, native posts/edits, ad spending or social-workspace writes performed. Owner .gitignore and untracked docs/oracle.md remain excluded.
+
+Expanded implementation Gates 13–21 are wired. Live provider acceptance, OAuth/app approvals, stable hosting and private Looker connector deployment remain in the final owner pass; implementation completion does not establish native acceptance.
