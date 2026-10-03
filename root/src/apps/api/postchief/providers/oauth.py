@@ -17,6 +17,7 @@ from provider_contracts import ProviderError, ErrorReason
 from postchief.providers.google import TOKEN_URL, token_credentials as google_tokens
 from postchief.providers.youtube import YouTubeProvider, SCOPES as YOUTUBE_SCOPES, BASE as YOUTUBE_BASE, channel_id
 from postchief.providers.tiktok import TikTokProvider, SCOPES as TIKTOK_SCOPES, tokens as tiktok_tokens
+from postchief.providers.tiktok_business import TikTokBusinessProvider, authorization_url as business_authorization, token_credentials as business_tokens
 
 router=APIRouter(tags=['OAuth connections'])
 
@@ -24,10 +25,13 @@ router=APIRouter(tags=['OAuth connections'])
 class OAuthService:
     def __init__(self, client, settings): self.http,self.settings=client,settings
 
-    def redirect_uri(self, provider): return self.settings.public_url.rstrip('/')+f'/api/connections/oauth/{provider}/callback'
+    def redirect_uri(self, provider):
+        return self.settings.public_url.rstrip('/')+f'/api/connections/oauth/{provider}/callback'+('/' if provider=='tiktok_business' else '')
 
     def authorization_url(self,provider,state):
         s=self.settings
+        if provider=='tiktok_business':
+            return business_authorization(s, self.redirect_uri(provider), state)
         if provider=='tiktok':
             if not s.tiktok_client_key or not s.tiktok_client_secret.get_secret_value():
                 raise HTTPException(503,'Configure the TikTok Login Kit client key and secret before connecting')
@@ -88,6 +92,16 @@ class OAuthService:
 
     async def exchange(self,provider,code,state=None):
         s=self.settings
+        if provider=='tiktok_business':
+            adapter=TikTokBusinessProvider(self.http,s)
+            value=await adapter.request('POST','tt_user/oauth2/token/',rotation=True,json={
+                'client_id':s.tiktok_business_client_id,'client_secret':s.tiktok_business_client_secret.get_secret_value(),
+                'grant_type':'authorization_code','auth_code':code,'redirect_uri':self.redirect_uri(provider)})
+            credentials=business_tokens(value)
+            await adapter.inspect(credentials)
+            profile=await adapter.profile(credentials)
+            return [{'provider':provider,'id':credentials['id'],'name':profile['display_name'],
+                'credentials':credentials,'expires_at':datetime.fromisoformat(credentials['expires_at'])}]
         if provider=='tiktok':
             adapter=TikTokProvider(self.http,s)
             value=await adapter.request('POST','oauth/token/',data={'client_key':s.tiktok_client_key,
@@ -210,6 +224,7 @@ def authorize(provider:str,actor:Actor=Depends(require_owner),db:Session=Depends
 
 
 @router.get('/connections/oauth/{provider}/callback')
+@router.get('/connections/oauth/{provider}/callback/',include_in_schema=False)
 async def callback(provider:str,request:Request,state:str|None=None,code:str|None=None,error:str|None=None,error_code:str|None=None,
                    actor:Actor=Depends(require_owner),db:Session=Depends(get_db),service=Depends(get_oauth_service)):
     rejected=bool(error or error_code)

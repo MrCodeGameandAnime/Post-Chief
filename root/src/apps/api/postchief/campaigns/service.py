@@ -31,6 +31,9 @@ def check_refs(db: Session, org_id: str, data: CampaignCreate):
     accounts = list(db.scalars(select(SocialAccount).where(SocialAccount.org_id == org_id, SocialAccount.id.in_(data.account_ids), SocialAccount.active.is_(True))))
     if len(accounts) != len(data.account_ids):
         raise HTTPException(404, "Connected account not found")
+    from postchief.providers.registry import PROVIDERS
+    if any(getattr(PROVIDERS.get(a.provider), 'reporting_only', False) for a in accounts):
+        raise HTTPException(422, 'Reporting connections cannot be campaign destinations')
     if set(data.overrides) - {a.provider for a in accounts}:
         raise HTTPException(422, "Overrides must target a selected provider")
     assets = set(data.asset_ids)

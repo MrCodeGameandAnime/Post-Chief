@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { request, send } from "../../../packages/api-client/src";
 import type { Campaign } from "../../../packages/shared-types/src";
+import { AccountReports } from "./AccountReports";
 
 interface Snapshot {
   id: string;
@@ -22,7 +23,7 @@ interface Row {
 }
 type Run = (action: () => Promise<unknown>) => Promise<boolean>;
 
-export function Analytics({ run, busy, campaigns = [] }: { run: Run; busy: boolean; campaigns?: Campaign[] }) {
+export function Analytics({ run, busy, campaigns = [], reportingEnabled = false }: { run: Run; busy: boolean; campaigns?: Campaign[]; reportingEnabled?: boolean }) {
   const [selected, setSelected] = useState<string | null>(null);
   const data = useInfiniteQuery({
     queryKey: ["analytics"],
@@ -41,6 +42,7 @@ export function Analytics({ run, busy, campaigns = [] }: { run: Run; busy: boole
   const rows = data.data?.pages.flat() ?? [];
   return (
     <>
+      <AccountReports run={run} busy={busy} enabled={reportingEnabled} />
       <p className="muted">
         Latest native metrics, grouped by destination. Missing values are
         unavailable. Counts keep their provider meaning.

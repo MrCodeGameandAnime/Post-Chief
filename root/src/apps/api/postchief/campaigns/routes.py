@@ -115,4 +115,6 @@ def publication(publication_id: str, actor: Actor = Depends(current_actor), db: 
 def connections(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
     require_scope(actor,"campaigns:read")
     rows = db.scalars(select(SocialAccount).where(SocialAccount.org_id == actor.org_id).order_by(SocialAccount.provider))
-    return [{"id":r.id,"provider":r.provider,"name":r.name,"remote_id":r.remote_id,"active":r.active,"expires_at":r.expires_at} for r in rows]
+    from postchief.providers.registry import PROVIDERS
+    return [{"id":r.id,"provider":r.provider,"name":r.name,"remote_id":r.remote_id,"active":r.active,"expires_at":r.expires_at,
+        'reporting_only':getattr(PROVIDERS.get(r.provider), 'reporting_only', False)} for r in rows]

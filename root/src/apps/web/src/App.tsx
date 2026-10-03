@@ -39,6 +39,7 @@ const providers: ProviderName[] = [
   "pinterest",
   "youtube",
   "tiktok",
+  "tiktok_business",
   "bluesky",
   "linkedin",
 ];
@@ -308,7 +309,7 @@ export function App() {
               {page === "Content" && (
                 <CampaignList rows={rows} open={setEditing} />
               )}
-              {page === "Analytics" && <Analytics run={run} busy={busy} campaigns={campaigns.data?.pages.flat() ?? []} />}
+              {page === "Analytics" && <Analytics run={run} busy={busy} campaigns={campaigns.data?.pages.flat() ?? []} reportingEnabled={accounts.data?.some(a => a.reporting_only) ?? false} />}
               {page === "Agent" && <Agent run={run} busy={busy} />}
               {page === "Planner" && <Planner rows={rows} open={setEditing} />}
               {page === "Assets" && (
@@ -585,7 +586,7 @@ function Editor({
         <fieldset disabled={!editable}>
           <legend>Destinations</legend>
           {accounts
-            .filter((a) => a.active || destinations.includes(a.id))
+            .filter((a) => !a.reporting_only && (a.active || destinations.includes(a.id)))
             .map((account) => (
               <label className="check" key={account.id}>
                 <input
@@ -599,7 +600,7 @@ function Editor({
                 {!account.active ? " · reconnect required" : ""}
               </label>
             ))}
-          {!accounts.some((a) => a.active) && (
+          {!accounts.some((a) => a.active && !a.reporting_only) && (
             <p>Connect an account before saving a campaign.</p>
           )}
         </fieldset>
@@ -1056,13 +1057,14 @@ function Connections({
   return (
     <>
       <p className="muted">
-        Connect the accounts you want to publish to. App permissions determine
+        Connect publishing and reporting accounts. App permissions determine
         available capabilities.
       </p>
       <div className="connection-grid">
         {providers.map((provider) => (
           <article className="panel" key={provider}>
-            <h3>{provider === "x" ? "X" : provider}</h3>
+            <h3>{provider === "x" ? "X" : provider === "tiktok_business" ? "TikTok business" : provider}</h3>
+            {provider === "tiktok_business" && <p className="muted">Separate TikTok Accounts authorization for profile and recent post reports. Collect and export snapshots in Analytics. This connection cannot publish campaigns.</p>}
             {provider === "x" && (
               <p className="muted">X API requests use paid credits. Metrics refresh only when requested. For a handoff without API fees, open a saved campaign and use X · manual handoff under Delivery.</p>
             )}

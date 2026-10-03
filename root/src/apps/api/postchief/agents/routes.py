@@ -15,6 +15,7 @@ from postchief.campaigns import routes as campaigns
 from postchief.publishing import routes as publishing
 from postchief.github import routes as github
 from postchief.analytics import routes as analytics
+from postchief.analytics import accounts as account_reports
 from postchief.github.routes import get_service
 from postchief.publishing.engine import utc
 from postchief.agents.policy import DEFAULTS,SCOPES,mode_for
@@ -121,10 +122,10 @@ def decide(approval_id:str,decision:Literal['approve','reject'],actor:Actor=Depe
 
 ACTIONS={'campaign.create':'campaigns:write','campaign.update':'campaigns:write','campaign.schedule':'campaigns:schedule',
     'campaign.publish':'campaigns:publish','campaign.cancel':'campaigns:write','publication.retry':'campaigns:publish',
-    'github.write':'github:write','feedback.sync':'github:write','analytics.refresh':'analytics:collect'}
+    'github.write':'github:write','feedback.sync':'github:write','analytics.refresh':'analytics:collect','report.refresh':'analytics:collect'}
 class Action(BaseModel):
     model_config=ConfigDict(extra='forbid')
-    action:Literal['campaign.create','campaign.update','campaign.schedule','campaign.publish','campaign.cancel','publication.retry','github.write','feedback.sync','analytics.refresh']
+    action:Literal['campaign.create','campaign.update','campaign.schedule','campaign.publish','campaign.cancel','publication.retry','github.write','feedback.sync','analytics.refresh','report.refresh']
     target_id:str|None=Field(default=None,max_length=36)
     data:dict=Field(default_factory=dict)
     approval_id:str|None=Field(default=None,max_length=36)
@@ -150,6 +151,9 @@ async def execute(data:Action,request:Request,actor:Actor=Depends(current_actor)
         campaign=get_campaign(db,actor.org_id,pub.campaign_id,lock=True)
         pub=db.scalar(select(Publication).where(Publication.id==pub.id).with_for_update().execution_options(populate_existing=True))
         context={'revision':campaign.revision,'publication_status':pub.status,'attempts':pub.attempts}
+    elif data.action=='report.refresh':
+        if not data.target_id:raise HTTPException(422,'Reporting account target_id required')
+        account_reports.reporting_account(db,actor,data.target_id)
     elif data.target_id:raise HTTPException(422,'This action does not accept target_id')
     payload={'target_id':data.target_id,'data':parsed.model_dump(mode='json',exclude_none=True) if parsed else {},'context':context}
     if data.approval_id or mode_for(db,actor.org_id,scope)=='APPROVAL':
@@ -180,5 +184,6 @@ async def execute(data:Action,request:Request,actor:Actor=Depends(current_actor)
     if data.action=='campaign.cancel':return publishing.cancel(data.target_id,scoped,db)
     if data.action=='publication.retry':return publishing.retry(data.target_id,scoped,db)
     if data.action=='analytics.refresh':return analytics.refresh(data.target_id,scoped,db)
+    if data.action=='report.refresh':return await account_reports.refresh(data.target_id,request,scoped,db)
     if data.action=='feedback.sync':return await feedback.sync(data.target_id,parsed,scoped,db,service)
     return await github.write_content(parsed,scoped,db,service)
