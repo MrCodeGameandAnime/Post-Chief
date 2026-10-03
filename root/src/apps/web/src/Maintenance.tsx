@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { request, send } from "../../../packages/api-client/src";
+import { YouTubeOptions } from "./YouTubeOptions";
+import type { YouTubeOptions as VideoOptions } from "../../../packages/shared-types/src";
 import type {
   Campaign,
   Connection,
@@ -29,6 +31,7 @@ export function AddDestination({
   );
   const [accountId, setAccountId] = useState("");
   const [body, setBody] = useState(campaign.body);
+  const [youtube, setYouTube] = useState<VideoOptions | undefined>(campaign.overrides.youtube?.youtube);
   const account = available.find((a) => a.id === accountId);
   if (!available.length) return null;
   const media = account
@@ -78,6 +81,7 @@ export function AddDestination({
           .map((id) => assets.find((a) => a.id === id)?.name ?? id)
           .join(", ") || "Text only"}
       </p>
+      {account?.provider === "youtube" && <YouTubeOptions title={campaign.title} value={youtube} change={setYouTube} />}
       <button
         disabled={busy || !account}
         onClick={async () => {
@@ -87,6 +91,7 @@ export function AddDestination({
                 revision: campaign.revision,
                 account_id: accountId,
                 body,
+                ...(account?.provider === "youtube" ? { youtube: youtube ?? { privacy_status: "private" } } : {}),
               }),
             )
           )
@@ -112,6 +117,7 @@ export function DestinationDelivery({
   assets: Asset[];
 }) {
   const [at, setAt] = useState("");
+  const [youtube, setYouTube] = useState<VideoOptions | undefined>(campaign.overrides.youtube?.youtube);
   const [body, setBody] = useState(
     campaign.overrides[publication.provider]?.body ?? campaign.body,
   );
@@ -123,7 +129,8 @@ export function DestinationDelivery({
   const savedMedia =
     campaign.overrides[publication.provider]?.asset_ids ?? campaign.asset_ids;
   const dirty =
-    body !== savedBody || JSON.stringify(media) !== JSON.stringify(savedMedia);
+    body !== savedBody || JSON.stringify(media) !== JSON.stringify(savedMedia) ||
+    (publication.provider === "youtube" && JSON.stringify(youtube) !== JSON.stringify(campaign.overrides.youtube?.youtube));
   const deliver = async (scheduled: boolean) => {
     if (
       await run(() =>
@@ -140,6 +147,7 @@ export function DestinationDelivery({
       <p>This destination is paused. Choose when to deliver it.</p>
       <details>
         <summary>Edit this destination's draft</summary>
+        {publication.provider === "youtube" && <YouTubeOptions title={campaign.title} value={youtube} change={setYouTube} />}
         <label>
           Copy
           <textarea
@@ -180,6 +188,7 @@ export function DestinationDelivery({
                     account_id: publication.account_id,
                     body,
                     asset_ids: media,
+                    ...(publication.provider === "youtube" ? { youtube: youtube ?? { privacy_status: "private" } } : {}),
                   },
                   "PATCH",
                 ),

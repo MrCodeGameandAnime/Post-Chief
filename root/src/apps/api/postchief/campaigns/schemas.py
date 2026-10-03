@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
+from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-PROVIDERS = {"facebook", "instagram", "threads", "x", "bluesky", "linkedin", "pinterest"}
+PROVIDERS = {"facebook", "instagram", "threads", "x", "bluesky", "linkedin", "pinterest", "youtube"}
 
 
 def aware(value: datetime | None):
@@ -12,10 +13,18 @@ def aware(value: datetime | None):
     return None
 
 
+class YouTubeOptions(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    title: str | None = Field(default=None, min_length=1, max_length=100)
+    privacy_status: Literal['private', 'unlisted', 'public'] = 'private'
+    made_for_kids: bool | None = Field(default=None, strict=True)
+
+
 class Override(BaseModel):
     model_config = ConfigDict(extra="forbid")
     body: str | None = Field(default=None, max_length=20000)
     asset_ids: list[str] | None = Field(default=None, max_length=20)
+    youtube: YouTubeOptions | None = None
 
 
 class CampaignCreate(BaseModel):
@@ -52,6 +61,8 @@ class CampaignCreate(BaseModel):
     def known_providers(cls, value):
         if set(value) - PROVIDERS:
             raise ValueError("Unknown provider override")
+        if any(v.youtube is not None and k != 'youtube' for k, v in value.items()):
+            raise ValueError("YouTube options must target YouTube")
         return value
 
     @model_validator(mode="after")

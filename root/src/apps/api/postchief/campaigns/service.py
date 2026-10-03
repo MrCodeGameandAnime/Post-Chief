@@ -65,6 +65,11 @@ def serialize_publication(db: Session, row: Publication):
         if snapshot:
             url=instagram_permalink(snapshot.metrics.get('provider_metrics',{}).get('provider',{}).get('permalink'))
     result = {"id":row.id,"campaign_id":row.campaign_id,"account_id":row.account_id,"provider":account.provider,"account_name":account.name,"status":row.status,"provider_id":row.provider_id,"url":url,"error":row.error,"attempts":row.attempts,"published_at":iso(row.published_at)}
+    event=db.scalar(select(AuditEvent).where(AuditEvent.org_id==row.org_id,
+        AuditEvent.action=='publication.metadata',AuditEvent.details['publication_id'].as_string()==row.id)
+        .order_by(AuditEvent.created_at.desc()).limit(1))
+    metadata=event.details.get('metadata') if event else None
+    if metadata: result['provider_metadata']=metadata
     edits = db.scalars(select(AuditEvent).where(AuditEvent.org_id == row.org_id,
         AuditEvent.action == 'publication.text_edit').order_by(AuditEvent.created_at)).all()
     history = [{"at": iso(e.created_at), **e.details} for e in edits if e.details.get('publication_id') == row.id]

@@ -23,6 +23,7 @@ import { Agent } from "./Agent";
 import { Feedback } from "./Feedback";
 import { XHandoff } from "./XHandoff";
 import { PinterestBoards } from "./PinterestBoards";
+import { YouTubeOptions } from "./YouTubeOptions";
 import {
   AddDestination,
   DestinationDelivery,
@@ -35,6 +36,7 @@ const providers: ProviderName[] = [
   "threads",
   "x",
   "pinterest",
+  "youtube",
   "bluesky",
   "linkedin",
 ];
@@ -626,6 +628,8 @@ function Editor({
             .map((provider) => (
               <details key={provider}>
                 <summary>{provider} copy & media</summary>
+                {provider === "youtube" && <YouTubeOptions title={title} value={overrides.youtube?.youtube}
+                  change={youtube => setOverrides({ ...overrides, youtube: { ...overrides.youtube, youtube } })} />}
                 <label>
                   Copy for {provider}
                   <textarea
@@ -783,6 +787,10 @@ function Editor({
                 {pub.provider} · {pub.account_name}
               </strong>
               <p>{pub.status}</p>
+              {pub.provider_metadata && <p className="muted">
+                Visibility: {pub.provider_metadata.visibility ?? "Awaiting confirmation"} · Processing: {pub.provider_metadata.processing_status ?? "Not reported"}
+                {pub.provider_metadata.url && !pub.url && <> · <a href={pub.provider_metadata.url} target="_blank" rel="noreferrer">Review uploaded video ↗</a></>}
+              </p>}
               {pub.published_at && (
                 <p className="muted">Published at {date(pub.published_at)}</p>
               )}

@@ -39,7 +39,9 @@ def start(campaign_id,at,request,actor,db):
         account=db.get(SocialAccount,pub.account_id)
         if not account or not account.active or account.org_id!=actor.org_id: raise HTTPException(409,'Reconnect all campaign destinations')
         body,media=media_for_campaign(db,row,account,request.app.state.settings)
-        get_provider(account.provider,None,request.app.state.settings).validate(body,media)
+        provider=get_provider(account.provider,None,request.app.state.settings)
+        provider.validate(body,media)
+        if account.provider=='youtube': provider.validate_options(row.overrides.get('youtube',{}).get('youtube'),row.title)
     for pub in pubs: pub.status='pending'; pub.next_attempt_at=None
     row.scheduled_at=at; row.status='scheduled'; row.revision+=1
     audit(db,actor,'campaign.schedule',{'campaign_id':row.id,'scheduled_at':at.isoformat()})
@@ -105,6 +107,15 @@ def reconcile(publication_id:str,data:Reconcile,request:Request,actor:Actor=Depe
     vault=Vault(request.app.state.settings.encryption_key.get_secret_value())
     try: state=state_for(pub,vault)
     except (InvalidToken,ValueError,TypeError): state={}
+    account=db.get(SocialAccount,pub.account_id)
+    if account.provider=='youtube':
+        from postchief.providers.youtube import video_id
+        if data.resolution=='published' and (not video_id(data.provider_id) or (state.get('video_id') and state['video_id']!=data.provider_id)):
+            raise HTTPException(422,'Confirm the existing YouTube video ID')
+        if data.resolution=='not_published' and state.get('video_id'):
+            raise HTTPException(409,'A YouTube video was accepted, possibly privately; review that video and reconcile its existing ID instead of creating another upload')
+        if data.resolution=='not_published':
+            state.pop('upload_session',None); state.pop('media_sha256',None)
     if data.resolution=='published':
         if not data.provider_id: raise HTTPException(422,'Enter the existing provider publication ID')
         pub.status='published'; pub.provider_id=data.provider_id; pub.published_at=datetime.now(timezone.utc); pub.error=None

@@ -1,5 +1,19 @@
 # Native providers
 
+## YouTube (Gate 14)
+
+Configure a Google **Web application** OAuth client as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. Enable YouTube Data API v3 and YouTube Analytics API in that project. Register the exact `PUBLIC_URL/api/connections/oauth/youtube/callback` redirect and the final HTTPS application origin. Add the owner as a test user while consent is in testing. Start consent from Connections and choose the intended channel or Brand Account. Post Chief requires one existing channel from `channels.list(mine=true)` and stores its stable channel ID; it does not guess between multiple channels. Offline consent supplies a refresh grant, encrypted and renewed under the durable account lock.
+
+Requested scopes are `https://www.googleapis.com/auth/youtube.upload`, `https://www.googleapis.com/auth/youtube.readonly` and `https://www.googleapis.com/auth/yt-analytics.readonly`. Shared Google client configuration will also support later Google integrations, with separate consent grants and scopes for each service.
+
+Choose one MP4 asset (current application cap: 80 MiB). Under YouTube provider overrides, set the optional video title (campaign title fallback, at most 100 characters), visibility and an explicit made-for-kids declaration. Visibility defaults to private; an unset audience declaration blocks delivery. Descriptions are capped at 5,000 UTF-8 bytes; titles/descriptions exclude angle brackets. Paused YouTube destinations also expose these controls. Category is currently People & Blogs (22); custom categories, tags, thumbnails, playlists, live streams and native metadata edits are outside this upload path.
+
+The worker uses Google's [resumable upload protocol](https://developers.google.com/youtube/v3/guides/using_resumable_upload_protocol). It encrypts and saves a fixed-origin upload session before sending bytes, checks accepted offsets before each bounded chunk, verifies the local video digest, persists the accepted video ID and polls processing. Lost chunk/final responses resume the same session. An expired session or ambiguous accepted video requires owner reconciliation instead of starting another upload. Session URLs and tokens never appear in feedback, audit metadata or browser responses.
+
+Delivery confirms the video's channel, processing and actual visibility. [Unverified API projects can be restricted to private uploads](https://developers.google.com/youtube/v3/docs/videos/insert). A public/unlisted request returned as private is a review/reconciliation outcome with a link to the existing video, not a successful public delivery. Dashboard/API and reviewed GitHub feedback retain actual/requested visibility and processing status. A known accepted video blocks a not-published reset, preventing creation of another video simply because the original is private.
+
+Native Data API views, likes and comments are lifetime counters. Separate Analytics shares and watch time use a requested 30-day window in [YouTube's Pacific reporting dates](https://developers.google.com/youtube/analytics/dimensions#time-periods), which can lag. Watch time is normalized to seconds; raw estimated minutes and the requested date window remain available. If the separate Analytics report fails or has no row, valid lifetime counters are retained and missing window counters stay unavailable. Live channel consent, a reviewed upload, processing/visibility checks and native reporting remain for the final owner pass.
+
 ## Bluesky (Gate 4)
 
 Connect with a handle and an App Password using the Connections API. Post Chief stores encrypted session and refresh tokens, not the password. Reconnecting preserves the account ID and publication history. This release supports Bluesky-hosted PDS domains (`bsky.social` and subdomains of `bsky.network`); other federated PDS hosts require an explicit future connection policy.

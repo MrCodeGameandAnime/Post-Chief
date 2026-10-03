@@ -13,7 +13,7 @@ from cryptography.fernet import InvalidToken
 from postchief.auth import Actor, require_owner
 from postchief.db import get_db
 from postchief.models import Publication, SocialAccount, AuditEvent
-from postchief.campaigns.schemas import CampaignCreate
+from postchief.campaigns.schemas import CampaignCreate, YouTubeOptions
 from postchief.campaigns.external import external_posts
 from postchief.campaigns.service import get_campaign, check_refs, audit, serialize_campaign, sync_assets
 from postchief.publishing.media import media_for_campaign
@@ -29,6 +29,7 @@ class Destination(BaseModel):
     revision: int = Field(ge=1)
     account_id: str
     body: str = Field(max_length=20000)
+    youtube: YouTubeOptions | None = None
 
 
 @router.post('/campaigns/{campaign_id}/destinations', status_code=201)
@@ -48,6 +49,8 @@ def add_destination(campaign_id: str, data: Destination, request: Request,
         SocialAccount.org_id == actor.org_id, SocialAccount.active.is_(True)))
     if not account:
         raise HTTPException(404, 'Connected account not found')
+    if data.youtube is not None and account.provider!='youtube':
+        raise HTTPException(422,'YouTube options must target YouTube')
     if account.provider == 'x' and external_posts(db, row):
         raise HTTPException(409, 'An X handoff is already recorded; create a separate campaign for another X post')
     existing_providers = {db.get(SocialAccount, p.account_id).provider for p in pubs}
@@ -57,12 +60,17 @@ def add_destination(campaign_id: str, data: Destination, request: Request,
     overrides = dict(row.overrides)
     if account.provider not in existing_providers:
         overrides[account.provider] = {**overrides.get(account.provider, {}), 'body': data.body}
+        if data.youtube is not None: overrides[account.provider]['youtube']=data.youtube.model_dump(exclude_none=True)
+    elif data.youtube is not None and data.youtube.model_dump(exclude_none=True)!=overrides.get(account.provider,{}).get('youtube'):
+        raise HTTPException(409,'Other YouTube destinations share these options; use the existing options')
     validated = CampaignCreate(title=row.title, body=row.body, asset_ids=row.asset_ids,
         account_ids=[account.id], overrides={account.provider: overrides.get(account.provider, {})})
     check_refs(db, actor.org_id, validated)
     row.overrides = overrides
     body, media = media_for_campaign(db, row, account, request.app.state.settings)
-    get_provider(account.provider, None, request.app.state.settings).validate(body, media)
+    provider=get_provider(account.provider, None, request.app.state.settings)
+    provider.validate(body, media)
+    if account.provider=='youtube': provider.validate_options(row.overrides.get('youtube',{}).get('youtube'),row.title)
     # Cancelled is deliberately non-dispatchable until the owner chooses delivery.
     db.add(Publication(org_id=actor.org_id, campaign_id=row.id, account_id=account.id, status='cancelled'))
     row.revision += 1
@@ -97,7 +105,9 @@ def deliver_destination(publication_id: str, data: Delivery, request: Request,
     if not account.active:
         raise HTTPException(409, 'Reconnect this destination')
     body, media = media_for_campaign(db, row, account, request.app.state.settings)
-    get_provider(account.provider, None, request.app.state.settings).validate(body, media)
+    provider=get_provider(account.provider, None, request.app.state.settings)
+    provider.validate(body, media)
+    if account.provider=='youtube': provider.validate_options(row.overrides.get('youtube',{}).get('youtube'),row.title)
     pub.status, pub.error, pub.next_attempt_at = 'pending', None, at
     # The individual next_attempt_at controls its date. Retain the campaign's
     # original schedule and all existing provider IDs, attempts and checkpoints.
@@ -126,6 +136,8 @@ def edit_destination_draft(publication_id: str, data: DestinationDraft, request:
     if row.revision != data.revision or pub.status != 'cancelled' or pub.attempts or pub.provider_id or data.account_id != pub.account_id:
         raise HTTPException(409, 'Only a paused, unattempted destination can be edited; reopen the campaign')
     account = db.get(SocialAccount, pub.account_id)
+    if data.youtube is not None and account.provider!='youtube':
+        raise HTTPException(422,'YouTube options must target YouTube')
     if len(data.asset_ids) != len(set(data.asset_ids)):
         raise HTTPException(422, 'Duplicate media is not allowed')
     others = db.scalars(select(Publication).join(SocialAccount, SocialAccount.id == Publication.account_id).where(
@@ -133,13 +145,16 @@ def edit_destination_draft(publication_id: str, data: DestinationDraft, request:
     if others:
         raise HTTPException(409, 'Other destinations share this provider copy; create a separate draft for different copy')
     overrides = dict(row.overrides)
-    overrides[account.provider] = {'body': data.body, 'asset_ids': data.asset_ids}
+    overrides[account.provider] = {**overrides.get(account.provider,{}), 'body': data.body, 'asset_ids': data.asset_ids}
+    if data.youtube is not None: overrides[account.provider]['youtube']=data.youtube.model_dump(exclude_none=True)
     validated = CampaignCreate(title=row.title, body=row.body, asset_ids=row.asset_ids,
         account_ids=[account.id], overrides={account.provider: overrides[account.provider]})
     check_refs(db, actor.org_id, validated)
     row.overrides = overrides
     body, media = media_for_campaign(db, row, account, request.app.state.settings)
-    get_provider(account.provider, None, request.app.state.settings).validate(body, media)
+    provider=get_provider(account.provider, None, request.app.state.settings)
+    provider.validate(body, media)
+    if account.provider=='youtube': provider.validate_options(row.overrides.get('youtube',{}).get('youtube'),row.title)
     row.revision += 1
     sync_assets(db, row)
     audit(db, actor, 'publication.draft_update', {'publication_id': pub.id, 'revision': row.revision})

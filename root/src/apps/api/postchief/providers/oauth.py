@@ -14,6 +14,8 @@ from postchief.providers.routes import save_connection
 from postchief.providers.x import SCOPES, BASE, pkce_verifier, token_auth, token_credentials, numeric_id
 from postchief.providers.pinterest import PinterestProvider, SCOPES as PINTEREST_SCOPES, BASE as PINTEREST_BASE, token_credentials as pinterest_tokens, numeric_id as pinterest_id
 from provider_contracts import ProviderError, ErrorReason
+from postchief.providers.google import TOKEN_URL, token_credentials as google_tokens
+from postchief.providers.youtube import YouTubeProvider, SCOPES as YOUTUBE_SCOPES, BASE as YOUTUBE_BASE, channel_id
 
 router=APIRouter(tags=['OAuth connections'])
 
@@ -25,6 +27,12 @@ class OAuthService:
 
     def authorization_url(self,provider,state):
         s=self.settings
+        if provider=='youtube':
+            if not s.google_client_id or not s.google_client_secret.get_secret_value():
+                raise HTTPException(503,'Configure the Google OAuth web client ID and secret before connecting')
+            return 'https://accounts.google.com/o/oauth2/v2/auth?'+urlencode({'client_id':s.google_client_id,
+                'redirect_uri':self.redirect_uri(provider),'scope':YOUTUBE_SCOPES,'response_type':'code','state':state,
+                'access_type':'offline','prompt':'consent'})
         if provider=='x':
             if not s.x_client_id or not s.x_client_secret.get_secret_value():
                 raise HTTPException(503,'Configure the X OAuth 2.0 client ID and secret before connecting')
@@ -74,6 +82,22 @@ class OAuthService:
 
     async def exchange(self,provider,code,state=None):
         s=self.settings
+        if provider=='youtube':
+            value=await self.request('POST',TOKEN_URL,data={'client_id':s.google_client_id,
+                'client_secret':s.google_client_secret.get_secret_value(),'grant_type':'authorization_code',
+                'redirect_uri':self.redirect_uri(provider),'code':code})
+            credentials=google_tokens(value)
+            response=await YouTubeProvider(self.http,s).request('GET',YOUTUBE_BASE+'channels',credentials,
+                params={'part':'id,snippet','mine':'true','maxResults':50})
+            channels=response.json().get('items',[])
+            if len(channels)!=1 or not channel_id(channels[0].get('id')):
+                raise ProviderError(ErrorReason.PERMISSION_MISSING,'Choose one existing YouTube channel during Google consent, then reconnect')
+            channel=channels[0]; name=channel.get('snippet',{}).get('title')
+            if not isinstance(name,str) or not name:
+                raise ProviderError(ErrorReason.AUTH_REVOKED,'YouTube channel identity is incomplete; reconnect')
+            credentials.update(id=channel['id'],scopes=value.get('scope',YOUTUBE_SCOPES).split())
+            return [{'provider':'youtube','id':channel['id'],'name':name,'credentials':credentials,
+                'expires_at':datetime.fromisoformat(credentials['expires_at'])}]
         if provider=='pinterest':
             value=await self.request('POST',PINTEREST_BASE+'oauth/token',
                 auth=httpx.BasicAuth(s.pinterest_client_id,s.pinterest_client_secret.get_secret_value()),

@@ -11,6 +11,7 @@ export type ProviderName =
   | "threads"
   | "x"
   | "pinterest"
+  | "youtube"
   | "bluesky"
   | "linkedin";
 export interface Connection {
@@ -32,6 +33,12 @@ export interface Publication {
   published_at?: string | null;
   provider_id?: string | null;
   error: { message: string; action_required: string } | null;
+  provider_metadata?: { video_id?: string; url?: string; visibility?: string; requested_visibility?: string; processing_status?: string };
+}
+export interface YouTubeOptions {
+  title?: string;
+  privacy_status: "private" | "unlisted" | "public";
+  made_for_kids?: boolean;
 }
 export interface Campaign {
   id: string;
@@ -39,7 +46,7 @@ export interface Campaign {
   body: string;
   asset_ids: string[];
   overrides: Partial<
-    Record<ProviderName, { body?: string; asset_ids?: string[] }>
+    Record<ProviderName, { body?: string; asset_ids?: string[]; youtube?: YouTubeOptions }>
   >;
   scheduled_at: string | null;
   status: string;

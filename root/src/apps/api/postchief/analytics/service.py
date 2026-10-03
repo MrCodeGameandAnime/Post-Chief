@@ -31,6 +31,10 @@ def normalize(provider,metrics):
         for name in normalized:
             semantics[name]={'clicks':'Pinterest outbound clicks over the last 30 UTC days',
                 'impressions':'Pinterest impressions over the last 30 UTC days'}.get(name,f'Pinterest reported {name}')
+    if provider=='youtube':
+        for name in normalized:
+            semantics[name]={'shares':'YouTube shares over the requested last 30 Pacific dates (reporting can lag)',
+                'watch_time':'YouTube watch time in seconds over the requested last 30 Pacific dates (reporting can lag)'}.get(name,f'YouTube lifetime {name}')
     return {'normalized':normalized,'provider_metrics':metrics,'semantics':semantics,'provider':provider}
 
 
@@ -74,8 +78,8 @@ async def collect(publication_id,sessions,settings,provider_factory=get_provider
                 if provider_name=='x':
                     credentials=await current_x_credentials(sessions,settings,account_id,org_id,provider)
                     original=deepcopy(credentials)
-                elif provider_name=='pinterest':
-                    credentials=await current_x_credentials(sessions,settings,account_id,org_id,provider,provider_name='pinterest')
+                elif provider_name in ('pinterest','youtube'):
+                    credentials=await current_x_credentials(sessions,settings,account_id,org_id,provider,provider_name=provider_name)
                     original=deepcopy(credentials)
                 elif credentials.get('expires_at') and utc(datetime.fromisoformat(credentials['expires_at']))<now+timedelta(days=1):
                     if hasattr(provider,'refresh_auth'): await provider.refresh_auth(credentials)

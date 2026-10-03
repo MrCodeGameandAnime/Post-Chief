@@ -46,6 +46,7 @@ class PublishResult:
     provider_id: str
     url: str | None = None
     state: dict = field(default_factory=dict)
+    metadata: dict = field(default_factory=dict)
 
 
 class PublicationPending(Exception):

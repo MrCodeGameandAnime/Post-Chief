@@ -80,6 +80,8 @@ async def execute_publication(publication_id,sessions,settings,provider_factory=
             account_id=account.id; org_id=account.org_id
             body=campaign.overrides.get(account.provider,{}).get('body',campaign.body)
             try:
+                if account.provider=='youtube':
+                    state.setdefault('youtube',provider.validate_options(campaign.overrides.get('youtube',{}).get('youtube'),campaign.title))
                 if not account.active or not account.credentials: raise ProviderError(ErrorReason.AUTH_REVOKED,'Reconnect this account')
                 credentials=vault.decrypt(account.credentials)
                 original_credentials=deepcopy(credentials)
@@ -101,8 +103,8 @@ async def execute_publication(publication_id,sessions,settings,provider_factory=
             if account.provider=='x':
                 credentials=await current_x_credentials(sessions,settings,account_id,org_id,provider)
                 original_credentials=deepcopy(credentials)
-            elif account.provider=='pinterest':
-                credentials=await current_x_credentials(sessions,settings,account_id,org_id,provider,provider_name='pinterest')
+            elif account.provider in ('pinterest','youtube'):
+                credentials=await current_x_credentials(sessions,settings,account_id,org_id,provider,provider_name=account.provider)
                 original_credentials=deepcopy(credentials)
             elif credentials.get('expires_at') and utc(datetime.fromisoformat(credentials['expires_at']))<now+timedelta(days=1):
                 if refresh: await refresh(credentials)
@@ -126,6 +128,7 @@ async def execute_publication(publication_id,sessions,settings,provider_factory=
                     .values(credentials=vault.encrypt(credentials),expires_at=expires))
             if result:
                 state.update(result.state); state.pop('_retry_count',None)
+                if result.metadata: state['_public_metadata']=result.metadata
                 pub.status='published'; pub.provider_id=result.provider_id; pub.provider_url=result.url
                 pub.published_at=datetime.now(timezone.utc); pub.error=None; pub.next_attempt_at=None
             elif pending:
@@ -138,6 +141,13 @@ async def execute_publication(publication_id,sessions,settings,provider_factory=
                     pub.status='retrying'; pub.next_attempt_at=datetime.now(timezone.utc)+timedelta(seconds=min(3600,30*2**(retries-1)))
                 else: pub.status='failed'; pub.next_attempt_at=None
             pub.provider_state={'sealed':vault.encrypt(state)}
+            if state.get('_public_metadata'):
+                previous_metadata=db.scalar(select(AuditEvent).where(AuditEvent.org_id==pub.org_id,
+                    AuditEvent.action=='publication.metadata',AuditEvent.details['publication_id'].as_string()==pub.id)
+                    .order_by(AuditEvent.created_at.desc()).limit(1))
+                if not previous_metadata or previous_metadata.details.get('metadata')!=state['_public_metadata']:
+                    db.add(AuditEvent(org_id=pub.org_id,actor_id='worker',action='publication.metadata',
+                        details={'publication_id':pub.id,'metadata':state['_public_metadata']}))
             db.flush(); campaign_status(db,campaign)
             db.add(AuditEvent(org_id=pub.org_id,actor_id='worker',action='publication.'+pub.status,details={'publication_id':pub.id,'provider':account.provider,'attempt':pub.attempts}))
             db.commit()

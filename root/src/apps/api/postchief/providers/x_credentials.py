@@ -9,7 +9,7 @@ from provider_contracts import ProviderError, ErrorReason
 async def current_x_credentials(sessions, settings, account_id, org_id, provider, provider_name='x'):
     vault = Vault(settings.encryption_key.get_secret_value())
     now = datetime.now(timezone.utc)
-    label = 'X' if provider_name == 'x' else 'Pinterest'
+    label = {'x': 'X', 'pinterest': 'Pinterest', 'youtube': 'YouTube'}.get(provider_name, provider_name)
     with sessions() as db:
         account = db.scalar(select(SocialAccount).where(SocialAccount.id == account_id,
             SocialAccount.org_id == org_id, SocialAccount.provider == provider_name).with_for_update())

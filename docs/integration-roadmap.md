@@ -9,7 +9,7 @@ A connection card is not a completed integration. Each gate needs authenticated 
 | Gate | Integration | Intended operations | Wiring status |
 |---|---|---|---|
 | 13 | Pinterest | OAuth, public board selection, image Pins, scheduled delivery, Pin analytics | Implemented; build passed; live owner acceptance pending |
-| 14 | YouTube | OAuth/channel discovery, resumable video upload, processing/privacy status, metadata and native statistics | Pending |
+| 14 | YouTube | OAuth/channel discovery, resumable video upload, processing/privacy status, metadata and native statistics | Implemented; typecheck/build and syntax checks passed; live owner acceptance pending |
 | 15 | TikTok personal | Login, creator information, required consent/privacy controls, direct-post or upload handoff, persisted upload/publish status | Pending |
 | 16 | TikTok business | Business authentication/discovery and supported organic/account reporting; separate from personal and ads | Pending |
 | 17 | Google Business Profile | OAuth, account/location selection, supported local-post creation/status and business performance | Pending |
@@ -34,7 +34,7 @@ LinkedIn and Bluesky already have adapters but remain deferred for owner accepta
 - [x] Gate 13: implement Pinterest adapter and OAuth; protect refresh-token rotation using durable account intent.
 - [x] Gate 13: expose public board discovery/selection without exposing tokens; retain board identity in publication intent.
 - [x] Gate 13: connect campaign types, dashboard, native metrics and GitHub feedback. Typecheck, production build and API syntax checks passed; deployment evidence remains separate from live acceptance.
-- [ ] Gate 14: review YouTube upload/processing contract and implement the same complete path, preserving resumable checkpoints and actual privacy status.
+- [x] Gate 14: implement YouTube channel consent, resumable upload/checkpoints, processing and actual privacy checks, video/audience controls, durable public metadata and native statistics. Build/typecheck and Python syntax checks passed; deployment and live acceptance remain separately evidenced.
 - [ ] Gates 15–21: implement sequentially using their actual API contracts; update status only on evidence.
 
 Official initial sources: [Pinterest OpenAPI](https://github.com/pinterest/api-description), [Pinterest authorization](https://developers.pinterest.com/docs/getting-started/set-up-authentication-and-authorization/), [YouTube uploads](https://developers.google.com/youtube/v3/docs/videos/insert), [TikTok publishing requirements](https://developers.tiktok.com/doc/content-sharing-guidelines).
