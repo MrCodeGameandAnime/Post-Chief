@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     threads_client_secret: SecretStr = SecretStr("")
     x_client_id: str = ""
     x_client_secret: SecretStr = SecretStr("")
+    pinterest_client_id: str = ""
+    pinterest_client_secret: SecretStr = SecretStr("")
     linkedin_client_id: str = ""
     linkedin_client_secret: SecretStr = SecretStr("")
     meta_api_version: str = "v25.0"

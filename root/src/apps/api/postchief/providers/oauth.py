@@ -12,6 +12,7 @@ from postchief.db import get_db
 from postchief.models import OAuthState
 from postchief.providers.routes import save_connection
 from postchief.providers.x import SCOPES, BASE, pkce_verifier, token_auth, token_credentials, numeric_id
+from postchief.providers.pinterest import PinterestProvider, SCOPES as PINTEREST_SCOPES, BASE as PINTEREST_BASE, token_credentials as pinterest_tokens, numeric_id as pinterest_id
 from provider_contracts import ProviderError, ErrorReason
 
 router=APIRouter(tags=['OAuth connections'])
@@ -31,7 +32,11 @@ class OAuthService:
             return 'https://x.com/i/oauth2/authorize?'+urlencode({'client_id':s.x_client_id,
                 'redirect_uri':self.redirect_uri(provider),'scope':SCOPES,'response_type':'code','state':state,
                 'code_challenge':challenge,'code_challenge_method':'S256'})
-        if provider=='meta':
+        if provider=='pinterest':
+            app,secret=s.pinterest_client_id,s.pinterest_client_secret.get_secret_value()
+            endpoint='https://www.pinterest.com/oauth/'
+            scope=PINTEREST_SCOPES
+        elif provider=='meta':
             app,secret=s.meta_client_id,s.meta_client_secret.get_secret_value()
             endpoint=f'https://www.facebook.com/{s.meta_api_version}/dialog/oauth'
             scope='business_management,pages_show_list,pages_read_engagement,pages_read_user_content,pages_manage_posts,instagram_basic,instagram_content_publish,instagram_manage_insights'
@@ -69,6 +74,17 @@ class OAuthService:
 
     async def exchange(self,provider,code,state=None):
         s=self.settings
+        if provider=='pinterest':
+            value=await self.request('POST',PINTEREST_BASE+'oauth/token',
+                auth=httpx.BasicAuth(s.pinterest_client_id,s.pinterest_client_secret.get_secret_value()),
+                data={'grant_type':'authorization_code','code':code,'redirect_uri':self.redirect_uri(provider)})
+            credentials=pinterest_tokens(value)
+            profile=await PinterestProvider(self.http,s).request('GET','user_account',credentials)
+            if not pinterest_id(profile.get('id')) or not isinstance(profile.get('username'),str):
+                raise ProviderError(ErrorReason.AUTH_REVOKED,'Pinterest did not return account identity; reconnect')
+            credentials.update(id=profile['id'],username=profile['username'])
+            return [{'provider':'pinterest','id':profile['id'],'name':profile['username'],
+                'credentials':credentials,'expires_at':datetime.fromisoformat(credentials['expires_at'])}]
         if provider=='x':
             if not state: raise HTTPException(400,'Start a fresh X connection from Connections')
             value=await self.request('POST',BASE+'oauth2/token',auth=token_auth(s),data={

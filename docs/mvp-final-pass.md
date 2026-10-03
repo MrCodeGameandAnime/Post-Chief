@@ -1,5 +1,7 @@
 # MVP final pass
 
+The owner subsequently expanded implementation scope to the remaining integrations in the reference catalog. Track those unfinished gates in [the expanded integration roadmap](integration-roadmap.md). This checklist records the accepted foundation and its remaining owner validations; it is not a completion claim for the expanded product.
+
 The owner requested continued implementation without waiting for app setup or consent. Core networks are Facebook, Instagram, Threads and X. LinkedIn and Bluesky are deferred. This checklist separates shipped wiring from live owner acceptance; the historical provider phases in `plan.md` do not expand current MVP scope.
 
 ## Implementation status
@@ -17,6 +19,8 @@ The owner requested continued implementation without waiting for app setup or co
 | Production backup procedure and synthetic recovery mechanics | Documented/covered by existing CI | Actual encrypted off-host backup/recovery remains |
 
 ## One owner session at the end
+
+Expanded Pinterest setup: configure its app ID/secret, register `PUBLIC_URL/api/connections/oauth/pinterest/callback`, complete consent and choose a public board in Connections before creating a draft. Review one JPEG/PNG Pin, its native result, 30-day metrics and reviewed feedback. This remains pending owner acceptance.
 
 1. **Deployment/app URLs.** Confirm the final public HTTPS origin. If the temporary tunnel changes, update `PUBLIC_URL`, `FRONTEND_URL`, provider app domains and exact callbacks, then restart API/worker/scheduler. Do not reuse consent URLs from earlier attempts.
 2. **Meta.** Resolve any developer-account review. Verify the existing Facebook/Instagram and Threads app settings, requested scopes and accepted tester invitations. Reconnect only where access requires it. See [provider setup](providers.md). Reconnection preserves existing account/publication records.

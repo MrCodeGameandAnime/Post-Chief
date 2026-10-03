@@ -22,6 +22,7 @@ import { Analytics } from "./Analytics";
 import { Agent } from "./Agent";
 import { Feedback } from "./Feedback";
 import { XHandoff } from "./XHandoff";
+import { PinterestBoards } from "./PinterestBoards";
 import {
   AddDestination,
   DestinationDelivery,
@@ -33,6 +34,7 @@ const providers: ProviderName[] = [
   "instagram",
   "threads",
   "x",
+  "pinterest",
   "bluesky",
   "linkedin",
 ];
@@ -1063,6 +1065,9 @@ function Connections({
                   </p>
                   {account.expires_at && (
                     <small>Token expiration: {date(account.expires_at)}</small>
+                  )}
+                  {provider === "pinterest" && account.active && (
+                    <PinterestBoards accountId={account.id} run={run} busy={busy} />
                   )}
                   {account.active && (
                     <button

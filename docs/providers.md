@@ -14,13 +14,24 @@ Analytics reports supported engagement counters. Missing counters and unsupporte
 
 Live connection and publication still require the owner's Bluesky account and intended content. Local HTTP contract tests verify requests and recovery behavior; they do not prove live provider access.
 
-## X (current priority)
+## Pinterest (expanded Gate 13)
+
+Configure `PINTEREST_CLIENT_ID` and `PINTEREST_CLIENT_SECRET`; register the exact callback `PUBLIC_URL/api/connections/oauth/pinterest/callback`. Consent requests `boards:read,pins:read,pins:write,user_accounts:read`. Encrypted continuous refresh tokens use a durable renewal intent shared by publishing, analytics and board discovery. Unconfirmed renewal requires reconnecting rather than reusing a possibly rotated token.
+
+After connecting, choose an accessible public board in Connections. Discovery is paginated. Switching an already selected board is blocked while pending drafts/deliveries exist; an initially missing board can be configured to recover setup errors. Reconnecting requires choosing the board again. A publication retains its board ID in its encrypted public-write intent.
+
+The initial adapter publishes one JPEG/PNG image up to the 10 MB application cap, with a description up to 800 characters and asset alt text up to 500. Images are sent as Base64. Video, carousel, board creation, custom Pin titles/links and native Pin edits are not implemented in this first pass. Text-only campaigns are rejected for Pinterest. Scheduling, independent outcomes, permalinks, reconciliation and reviewed feedback use the existing paths.
+
+Pin analytics cover the last 30 UTC days. Impressions and outbound clicks preserve that window; Pin clicks and saves remain in provider data. Missing counters remain unavailable. App access, permissions, consent and intended live Pin acceptance remain for the final owner pass. Sources: [Pinterest OpenAPI](https://github.com/pinterest/api-description) and [authorization guide](https://developers.pinterest.com/docs/getting-started/set-up-authentication-and-authorization/).
+
+## X (core foundation)
 
 ### Handoff without API credits
 
 Saved campaigns expose **X · manual handoff** under Delivery even without X credentials. Copy the platform-specific caption, download selected JPEG/PNG/WebP images, post in X and record the URL and actual publication time. The record is explicitly owner-reported, is never dispatched by workers and has no native analytics collection. Existing automated publication outcomes are unchanged. The record and unavailable metrics flow into the same reviewed GitHub feedback. One campaign cannot use both direct and manual X delivery. See [final-pass instructions and limitations](mvp-final-pass.md).
 
 ### Direct API integration
+
 
 The owner's core networks are Facebook, Instagram, Threads and X. Bluesky and LinkedIn remain optional follow-ups. X live account acceptance has not been performed.
 

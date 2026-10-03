@@ -10,6 +10,7 @@ export type ProviderName =
   | "instagram"
   | "threads"
   | "x"
+  | "pinterest"
   | "bluesky"
   | "linkedin";
 export interface Connection {

@@ -101,6 +101,9 @@ async def execute_publication(publication_id,sessions,settings,provider_factory=
             if account.provider=='x':
                 credentials=await current_x_credentials(sessions,settings,account_id,org_id,provider)
                 original_credentials=deepcopy(credentials)
+            elif account.provider=='pinterest':
+                credentials=await current_x_credentials(sessions,settings,account_id,org_id,provider,provider_name='pinterest')
+                original_credentials=deepcopy(credentials)
             elif credentials.get('expires_at') and utc(datetime.fromisoformat(credentials['expires_at']))<now+timedelta(days=1):
                 if refresh: await refresh(credentials)
                 elif utc(datetime.fromisoformat(credentials['expires_at']))<=now: raise ProviderError(ErrorReason.AUTH_EXPIRED,'Reconnect this account')

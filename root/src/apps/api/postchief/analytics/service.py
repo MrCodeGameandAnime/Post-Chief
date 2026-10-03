@@ -27,6 +27,10 @@ def normalize(provider,metrics):
             semantics[name]={'replies':'Bluesky replies','reposts':'Bluesky reposts'}.get(key,f'{provider} reported {key}')
             if provider=='x':
                 semantics[name]={'comments':'X reported replies','shares':'X reported reposts'}.get(name,f'X reported {name}')
+    if provider=='pinterest':
+        for name in normalized:
+            semantics[name]={'clicks':'Pinterest outbound clicks over the last 30 UTC days',
+                'impressions':'Pinterest impressions over the last 30 UTC days'}.get(name,f'Pinterest reported {name}')
     return {'normalized':normalized,'provider_metrics':metrics,'semantics':semantics,'provider':provider}
 
 
@@ -69,6 +73,9 @@ async def collect(publication_id,sessions,settings,provider_factory=get_provider
                 nonlocal credentials, original
                 if provider_name=='x':
                     credentials=await current_x_credentials(sessions,settings,account_id,org_id,provider)
+                    original=deepcopy(credentials)
+                elif provider_name=='pinterest':
+                    credentials=await current_x_credentials(sessions,settings,account_id,org_id,provider,provider_name='pinterest')
                     original=deepcopy(credentials)
                 elif credentials.get('expires_at') and utc(datetime.fromisoformat(credentials['expires_at']))<now+timedelta(days=1):
                     if hasattr(provider,'refresh_auth'): await provider.refresh_auth(credentials)

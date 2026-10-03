@@ -22,6 +22,8 @@ Run `alembic upgrade head`, then `uvicorn postchief.main:create_app --factory --
 
 ## Deployment
 
+The owner expanded the product beyond the accepted core workflow. The [expanded integration gates](docs/integration-roadmap.md) track remaining publishing, web/blog and reporting APIs. Those unfinished integrations are not covered by the original gate-completion claim.
+
 The core MVP networks are Facebook, Instagram, Threads and X. X supports either direct OAuth/API delivery (paid credits) or a manual caption/image handoff with owner-reported post URLs. LinkedIn and Bluesky are deferred. Account setup and live owner acceptance are consolidated in the [MVP final pass](docs/mvp-final-pass.md).
 
 From `root/`, configure `.env` and run `docker compose up --build -d`. PostgreSQL and Redis stay on the private container network. Deploy the API behind HTTPS before connecting provider accounts. Use migrations before application upgrades, back up PostgreSQL and the media volume, and keep the encryption key with the backup. Provider tokens cannot be decrypted with a different key.

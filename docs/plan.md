@@ -208,6 +208,8 @@ Repeated execution must not accidentally create duplicate social posts.
 
 # Current owner priority (October 2, 2026)
 
+The owner subsequently requested wiring the remaining integrations shown in the Metricool catalog, continuing without waiting for account setup. [Expanded integration gates](integration-roadmap.md) now track Pinterest, YouTube, TikTok personal/business, Google Business Profile, web/blog, Twitch, ads reporting and Looker Studio. Those gates are unfinished; completion of the original twelve gates must not be represented as completion of this expanded scope.
+
 The core networks are Facebook, Instagram, Threads and X. Prioritize X next; LinkedIn and Bluesky are deferred optional integrations. The original phased provider list below is retained as historical product planning. Live Facebook/Instagram/Threads acceptance is recorded in `docs/dogfood.md`; X requires separate owner account consent and reviewed live content.
 
 # 3. Provider Architecture
