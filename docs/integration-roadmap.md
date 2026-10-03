@@ -14,7 +14,7 @@ A connection card is not a completed integration. Each gate needs authenticated 
 | 16 | TikTok business | Business authentication/discovery and supported organic/account reporting; separate from personal and ads | Implemented and deployed; CI passed; live owner acceptance pending |
 | 17 | Google Business Profile | OAuth, account/location selection, supported local-post creation/status and business performance | Implemented and deployed; CI passed; live owner acceptance pending |
 | 18 | Web and blog | Website analytics connection/data, RSS/Atom discovery and bounded ingestion into agent context; no fake social publication | Implemented and deployed; CI passed; live owner acceptance pending |
-| 19 | Twitch | OAuth, channel/account context, supported analytics/reporting; no generic feed-post capability | Implemented; typecheck/build/syntax checks passed; deployment and live owner acceptance pending |
+| 19 | Twitch | OAuth, channel/account context, supported analytics/reporting; no generic feed-post capability | Implemented and locally deployed; typecheck/build/syntax checks and CI 37124241141 passed; live owner acceptance pending |
 | 20 | Meta Ads, Google Ads, TikTok Ads | OAuth/account selection, read-only account/campaign performance with explicit metric semantics and dates | Pending |
 | 21 | Looker Studio | Authenticated reporting/export contract or connector, access controls and stable schemas | Pending |
 
