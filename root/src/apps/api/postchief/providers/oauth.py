@@ -16,6 +16,7 @@ from postchief.providers.pinterest import PinterestProvider, SCOPES as PINTEREST
 from provider_contracts import ProviderError, ErrorReason
 from postchief.providers.google import TOKEN_URL, token_credentials as google_tokens
 from postchief.providers.gbp import GoogleBusinessProvider, SCOPES as GBP_SCOPES
+from postchief.providers.web_analytics import WebAnalyticsProvider, SCOPES as WEB_SCOPES
 from postchief.providers.youtube import YouTubeProvider, SCOPES as YOUTUBE_SCOPES, BASE as YOUTUBE_BASE, channel_id
 from postchief.providers.tiktok import TikTokProvider, SCOPES as TIKTOK_SCOPES, tokens as tiktok_tokens
 from postchief.providers.tiktok_business import TikTokBusinessProvider, authorization_url as business_authorization, token_credentials as business_tokens
@@ -38,11 +39,11 @@ class OAuthService:
                 raise HTTPException(503,'Configure the TikTok Login Kit client key and secret before connecting')
             return 'https://www.tiktok.com/v2/auth/authorize/?'+urlencode({'client_key':s.tiktok_client_key,
                 'redirect_uri':self.redirect_uri(provider),'scope':TIKTOK_SCOPES,'response_type':'code','state':state,'disable_auto_auth':1})
-        if provider in ('youtube','gbp'):
+        if provider in ('youtube','gbp','web'):
             if not s.google_client_id or not s.google_client_secret.get_secret_value():
                 raise HTTPException(503,'Configure the Google OAuth web client ID and secret before connecting')
             return 'https://accounts.google.com/o/oauth2/v2/auth?'+urlencode({'client_id':s.google_client_id,
-                'redirect_uri':self.redirect_uri(provider),'scope':GBP_SCOPES if provider=='gbp' else YOUTUBE_SCOPES,'response_type':'code','state':state,
+                'redirect_uri':self.redirect_uri(provider),'scope':{'gbp':GBP_SCOPES,'web':WEB_SCOPES,'youtube':YOUTUBE_SCOPES}[provider],'response_type':'code','state':state,
                 'access_type':'offline','prompt':'consent'})
         if provider=='x':
             if not s.x_client_id or not s.x_client_secret.get_secret_value():
@@ -93,15 +94,17 @@ class OAuthService:
 
     async def exchange(self,provider,code,state=None):
         s=self.settings
-        if provider=='gbp':
+        if provider in ('gbp','web'):
             value=await self.request('POST',TOKEN_URL,data={'client_id':s.google_client_id,
                 'client_secret':s.google_client_secret.get_secret_value(),'grant_type':'authorization_code',
                 'redirect_uri':self.redirect_uri(provider),'code':code})
             credentials=google_tokens(value)
-            if not isinstance(value.get('scope'),str) or GBP_SCOPES not in value['scope'].split():
-                raise ProviderError(ErrorReason.PERMISSION_MISSING,'Grant Google business.manage access and reconnect')
+            required=GBP_SCOPES if provider=='gbp' else WEB_SCOPES
+            if not isinstance(value.get('scope'),str) or required not in value['scope'].split():
+                raise ProviderError(ErrorReason.PERMISSION_MISSING,'Grant the requested Google scope and reconnect')
             credentials['scopes']=value['scope'].split()
-            return await GoogleBusinessProvider(self.http,s).discover(credentials)
+            adapter=GoogleBusinessProvider(self.http,s) if provider=='gbp' else WebAnalyticsProvider(self.http,s)
+            return await adapter.discover(credentials)
         if provider=='tiktok_business':
             adapter=TikTokBusinessProvider(self.http,s)
             value=await adapter.request('POST','tt_user/oauth2/token/',rotation=True,json={

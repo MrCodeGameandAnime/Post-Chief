@@ -37,6 +37,12 @@ Expanded TikTok business setup: configure the separate business client ID/secret
 7. **UI.** Inspect campaign maintenance and the feedback dialog on desktop and a mobile viewport. Check long captions, URLs, horizontal diffs, downloads and clipboard fallback.
 8. **Operations.** Choose an off-host backup destination, take an encrypted production backup with keys/source revision/media, and rehearse restoration into an isolated deployment with dispatch disabled. Follow [operations](operations.md). Existing synthetic recovery evidence does not establish an actual production backup.
 
+## Web/blog owner acceptance
+
+- Register the public `/api/connections/oauth/web/callback` in the Google web client and enable Analytics Admin/Data APIs. Grant read-only access, inspect the intended GA4 property and its timezone, then collect totals, daily rows and session channels. Confirm tracking was already installed and inspect reporting lag, threshold flags and bounded coverage.
+- Connect the intended public HTTPS RSS/Atom URL or discover it from the website. Inspect the saved entry snapshots, historical collection and JSON export. Confirm feed text is treated as external source data and that web/blog connections are absent from campaign destinations.
+- No GA4 grant, website feed connection or live collection has been performed during implementation. Owner OAuth/source acceptance remains pending.
+
 ## Google Business Profile owner acceptance
 
 - Configure Google web OAuth credentials and register the exact public `/api/connections/oauth/gbp/callback`. Obtain Business Profile project API access and enable Account Management, Business Information, Performance and Google My Business v4 APIs. Grant `business.manage` from the intended business owner/manager account.

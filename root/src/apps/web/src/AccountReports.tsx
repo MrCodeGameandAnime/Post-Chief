@@ -9,7 +9,7 @@ interface Report {
   window?: { start: string; end: string; timezone: string; inclusive?: boolean };
   notice?: string;
   context?: Record<string, unknown>;
-  coverage?: { post_error?: { message: string } | null; more_posts?: boolean; posts_returned?: number };
+  coverage?: { post_error?: { message: string } | null; more_posts?: boolean; posts_returned?: number; [key: string]: unknown };
   tables: { name: string; rows: Record<string, unknown>[] }[];
 }
 interface Snapshot { id: string; collected_at: string; report: Report }
@@ -79,5 +79,8 @@ function ReportView({ snapshot }: { snapshot: Snapshot }) {
         </tr></thead><tbody>{table.rows.map((row, index) => <tr key={index}>{columns.map(column => <td key={column}>{cell(row[column])}</td>)}</tr>)}</tbody></table></div>}
       </details>;
     })}
+    {(report.coverage || report.context) && <details><summary>Source and report coverage</summary>
+      {Object.entries({ ...report.context, ...report.coverage }).map(([key, value]) => <p key={key}><strong>{key.replaceAll("_", " ")}: </strong>{cell(value)}</p>)}
+    </details>}
   </div>;
 }

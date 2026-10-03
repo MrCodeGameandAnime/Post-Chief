@@ -93,8 +93,12 @@ async def refresh(account_id: str, request: Request, actor: Actor = Depends(curr
     try:
         async with httpx.AsyncClient(timeout=30) as http:
             provider = get_provider(provider_name, http, request.app.state.settings)
-            credentials = await current_x_credentials(request.app.state.sessions, request.app.state.settings,
-                account_id, actor.org_id, provider, provider_name=provider_name)
+            if getattr(provider, 'requires_token_refresh', True):
+                credentials = await current_x_credentials(request.app.state.sessions, request.app.state.settings,
+                    account_id, actor.org_id, provider, provider_name=provider_name)
+            else:
+                from postchief.vault import Vault
+                credentials = Vault(request.app.state.settings.encryption_key.get_secret_value()).decrypt(account.credentials)
             try:
                 report = await asyncio.wait_for(provider.get_account_report(credentials), timeout=90)
             except TimeoutError:
@@ -105,7 +109,7 @@ async def refresh(account_id: str, request: Request, actor: Actor = Depends(curr
         account = reporting_account(db, actor, account_id, lock=True)
         from postchief.vault import Vault
         current = Vault(request.app.state.settings.encryption_key.get_secret_value()).decrypt(account.credentials) if account.credentials else {}
-        if not account.active or current.get('access_token') != credentials['access_token']:
+        if not account.active or current != credentials:
             raise HTTPException(409, 'Connection changed during collection; request the report again')
         audit(db, actor, 'account.report', {'account_id': account_id, 'provider': provider_name, 'report': report})
         db.commit()

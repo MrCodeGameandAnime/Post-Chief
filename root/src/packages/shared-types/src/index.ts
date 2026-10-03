@@ -16,6 +16,8 @@ export type ProviderName =
   | "tiktok"
   | "tiktok_business"
   | "gbp"
+  | "web"
+  | "blog"
   | "bluesky"
   | "linkedin";
 export interface Connection {

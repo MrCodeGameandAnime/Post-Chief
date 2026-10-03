@@ -15,6 +15,7 @@ from postchief.providers.oauth import router as oauth_router
 from postchief.providers.linkedin_routes import router as linkedin_router
 from postchief.providers.pinterest_routes import router as pinterest_router
 from postchief.providers.tiktok_routes import router as tiktok_router
+from postchief.providers.blog_routes import router as blog_router
 from postchief.publishing.routes import router as publishing_router
 from postchief.publishing.media import router as media_router
 from postchief.analytics.routes import router as analytics_router
@@ -59,6 +60,7 @@ def create_app(settings: Settings | None = None):
     app.include_router(linkedin_router, prefix="/api")
     app.include_router(pinterest_router, prefix="/api")
     app.include_router(tiktok_router, prefix="/api")
+    app.include_router(blog_router, prefix="/api")
     app.include_router(publishing_router, prefix="/api")
     app.include_router(media_router, prefix="/api")
     app.include_router(analytics_router, prefix="/api")
