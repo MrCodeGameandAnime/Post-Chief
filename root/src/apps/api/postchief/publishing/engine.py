@@ -106,7 +106,7 @@ async def execute_publication(publication_id,sessions,settings,provider_factory=
             if account.provider=='x':
                 credentials=await current_x_credentials(sessions,settings,account_id,org_id,provider)
                 original_credentials=deepcopy(credentials)
-            elif account.provider in ('pinterest','youtube','tiktok'):
+            elif account.provider in ('pinterest','youtube','tiktok','gbp'):
                 credentials=await current_x_credentials(sessions,settings,account_id,org_id,provider,provider_name=account.provider)
                 original_credentials=deepcopy(credentials)
             elif credentials.get('expires_at') and utc(datetime.fromisoformat(credentials['expires_at']))<now+timedelta(days=1):

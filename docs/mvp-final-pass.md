@@ -37,6 +37,13 @@ Expanded TikTok business setup: configure the separate business client ID/secret
 7. **UI.** Inspect campaign maintenance and the feedback dialog on desktop and a mobile viewport. Check long captions, URLs, horizontal diffs, downloads and clipboard fallback.
 8. **Operations.** Choose an off-host backup destination, take an encrypted production backup with keys/source revision/media, and rehearse restoration into an isolated deployment with dispatch disabled. Follow [operations](operations.md). Existing synthetic recovery evidence does not establish an actual production backup.
 
+## Google Business Profile owner acceptance
+
+- Configure Google web OAuth credentials and register the exact public `/api/connections/oauth/gbp/callback`. Obtain Business Profile project API access and enable Account Management, Business Information, Performance and Google My Business v4 APIs. Grant `business.manage` from the intended business owner/manager account.
+- Connect, inspect location names/resource IDs and select the intended location. Confirm the business is verified and eligible for local posts. Review one new STANDARD English post and optional compliant image before publishing; confirm Google's native result and that Post Chief waits for `LIVE`.
+- Collect post insights and a daily location report, inspect dates/missing counters, history and JSON export. Confirm location metrics stay distinct from post metrics and that feedback previews preserve the accepted resource/state.
+- No Google business location has been contacted or post created during implementation. OAuth, API eligibility and live performance availability remain unvalidated until this pass.
+
 ## Manual X record contract
 
 `POST /api/campaigns/{id}/external/x` requires an owner session, CSRF protection, the current campaign revision, actual `body`, `asset_ids`, an HTTPS X/Twitter status URL, timezone-aware `published_at` and `confirmed_published: true`. URLs are normalized to `x.com`, with tracking parameters removed; no external URL is fetched. Future timestamps and unsupported/cross-organization assets are rejected.

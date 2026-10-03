@@ -117,4 +117,5 @@ def connections(actor: Actor = Depends(current_actor), db: Session = Depends(get
     rows = db.scalars(select(SocialAccount).where(SocialAccount.org_id == actor.org_id).order_by(SocialAccount.provider))
     from postchief.providers.registry import PROVIDERS
     return [{"id":r.id,"provider":r.provider,"name":r.name,"remote_id":r.remote_id,"active":r.active,"expires_at":r.expires_at,
-        'reporting_only':getattr(PROVIDERS.get(r.provider), 'reporting_only', False)} for r in rows]
+        'reporting_only':getattr(PROVIDERS.get(r.provider), 'reporting_only', False),
+        'account_reporting':getattr(PROVIDERS.get(r.provider), 'account_reporting', False)} for r in rows]

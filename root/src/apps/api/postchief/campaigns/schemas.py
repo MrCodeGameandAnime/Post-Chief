@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-PROVIDERS = {"facebook", "instagram", "threads", "x", "bluesky", "linkedin", "pinterest", "youtube", "tiktok"}
+PROVIDERS = {"facebook", "instagram", "threads", "x", "bluesky", "linkedin", "pinterest", "youtube", "tiktok", "gbp"}
 
 
 def aware(value: datetime | None):

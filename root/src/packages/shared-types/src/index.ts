@@ -15,6 +15,7 @@ export type ProviderName =
   | "youtube"
   | "tiktok"
   | "tiktok_business"
+  | "gbp"
   | "bluesky"
   | "linkedin";
 export interface Connection {
@@ -25,6 +26,7 @@ export interface Connection {
   active: boolean;
   expires_at: string | null;
   reporting_only?: boolean;
+  account_reporting?: boolean;
 }
 export interface Publication {
   id: string;

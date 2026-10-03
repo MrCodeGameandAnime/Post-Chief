@@ -4,6 +4,7 @@ from provider_contracts import Capabilities, ProviderError, ErrorReason
 
 class ReportingProvider:
     reporting_only = True
+    account_reporting = True
     capabilities = Capabilities(text=False, analytics=True)
     limits = {'delivery': 'Account reports only; cannot publish campaigns'}
     idempotent = True

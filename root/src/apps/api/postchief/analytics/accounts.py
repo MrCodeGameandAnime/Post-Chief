@@ -1,5 +1,6 @@
 """Durable, scoped account report snapshots shared by reporting integrations."""
 from datetime import datetime, timedelta, timezone
+import asyncio
 import json
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -21,7 +22,7 @@ def reporting_account(db, actor, account_id, lock=False):
     query = select(SocialAccount).where(SocialAccount.id == account_id, SocialAccount.org_id == actor.org_id)
     if lock: query = query.with_for_update().execution_options(populate_existing=True)
     row = db.scalar(query)
-    if not row or not getattr(PROVIDERS.get(row.provider), 'reporting_only', False):
+    if not row or not getattr(PROVIDERS.get(row.provider), 'account_reporting', False):
         raise HTTPException(404, 'Reporting connection not found')
     return row
 
@@ -46,7 +47,7 @@ def latest_report(db, actor, row):
 def accounts(limit: int = Query(default=100, ge=1, le=200), offset: int = Query(default=0, ge=0),
              actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
     require_scope(actor, 'analytics:read')
-    names = [name for name, cls in PROVIDERS.items() if getattr(cls, 'reporting_only', False)]
+    names = [name for name, cls in PROVIDERS.items() if getattr(cls, 'account_reporting', False)]
     rows = db.scalars(select(SocialAccount).where(SocialAccount.org_id == actor.org_id, SocialAccount.provider.in_(names))
         .order_by(SocialAccount.created_at.desc()).offset(offset).limit(limit))
     return [latest_report(db, actor, row) for row in rows]
@@ -76,7 +77,7 @@ def export(account_id: str, actor: Actor = Depends(current_actor), db: Session =
 @router.post('/accounts/{account_id}/refresh')
 async def refresh(account_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
     require_scope(actor, 'analytics:collect')
-    names = [name for name, cls in PROVIDERS.items() if getattr(cls, 'reporting_only', False)]
+    names = [name for name, cls in PROVIDERS.items() if getattr(cls, 'account_reporting', False)]
     # Acquire a write lock before reading the cooldown on SQLite too.
     db.execute(update(SocialAccount).where(SocialAccount.id == account_id, SocialAccount.org_id == actor.org_id,
         SocialAccount.provider.in_(names)).values(name=SocialAccount.name))
@@ -94,7 +95,10 @@ async def refresh(account_id: str, request: Request, actor: Actor = Depends(curr
             provider = get_provider(provider_name, http, request.app.state.settings)
             credentials = await current_x_credentials(request.app.state.sessions, request.app.state.settings,
                 account_id, actor.org_id, provider, provider_name=provider_name)
-            report = await provider.get_account_report(credentials)
+            try:
+                report = await asyncio.wait_for(provider.get_account_report(credentials), timeout=90)
+            except TimeoutError:
+                raise ProviderError(ErrorReason.NETWORK_ERROR, 'Account report collection timed out; last successful report retained', retryable=True)
         if len(json.dumps(report, ensure_ascii=False, allow_nan=False).encode()) > 256 * 1024:
             raise ProviderError(ErrorReason.PROVIDER_ERROR, 'The account report exceeded the supported snapshot size')
         # Disconnect or reconnect during collection invalidates this result.

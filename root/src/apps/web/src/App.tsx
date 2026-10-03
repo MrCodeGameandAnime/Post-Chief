@@ -40,6 +40,7 @@ const providers: ProviderName[] = [
   "youtube",
   "tiktok",
   "tiktok_business",
+  "gbp",
   "bluesky",
   "linkedin",
 ];
@@ -309,7 +310,7 @@ export function App() {
               {page === "Content" && (
                 <CampaignList rows={rows} open={setEditing} />
               )}
-              {page === "Analytics" && <Analytics run={run} busy={busy} campaigns={campaigns.data?.pages.flat() ?? []} reportingEnabled={accounts.data?.some(a => a.reporting_only) ?? false} />}
+              {page === "Analytics" && <Analytics run={run} busy={busy} campaigns={campaigns.data?.pages.flat() ?? []} reportingEnabled={accounts.data?.some(a => a.account_reporting) ?? false} />}
               {page === "Agent" && <Agent run={run} busy={busy} />}
               {page === "Planner" && <Planner rows={rows} open={setEditing} />}
               {page === "Assets" && (
@@ -597,6 +598,7 @@ function Editor({
                   }
                 />
                 {account.provider} · {account.name}
+                {account.provider === "gbp" ? " · " + account.remote_id : ""}
                 {!account.active ? " · reconnect required" : ""}
               </label>
             ))}
@@ -631,6 +633,7 @@ function Editor({
             .map((provider) => (
               <details key={provider}>
                 <summary>{provider} copy & media</summary>
+                {provider === "gbp" && <p className="muted">Google Business Profile standard post · English · 1–1,500 characters · optional JPEG/PNG, 10 KiB–5 MiB and at least 250 × 250 pixels. Google moderation may delay publication.</p>}
                 {provider === "youtube" && <YouTubeOptions title={title} value={overrides.youtube?.youtube}
                   change={youtube => setOverrides({ ...overrides, youtube: { ...overrides.youtube, youtube } })} />}
                 {provider === "tiktok" && <TikTokOptions accountId={accounts.find(a => a.provider === provider && destinations.includes(a.id))!.id}
@@ -1063,7 +1066,8 @@ function Connections({
       <div className="connection-grid">
         {providers.map((provider) => (
           <article className="panel" key={provider}>
-            <h3>{provider === "x" ? "X" : provider === "tiktok_business" ? "TikTok business" : provider}</h3>
+            <h3>{provider === "x" ? "X" : provider === "gbp" ? "Google Business Profile" : provider === "tiktok_business" ? "TikTok business" : provider}</h3>
+            {provider === "gbp" && <p className="muted">Connect accessible business locations, then select the intended location as a campaign destination. Standard local posts use English text and an optional JPEG or PNG. Location performance reports are available in Analytics.</p>}
             {provider === "tiktok_business" && <p className="muted">Separate TikTok Accounts authorization for profile and recent post reports. Collect and export snapshots in Analytics. This connection cannot publish campaigns.</p>}
             {provider === "x" && (
               <p className="muted">X API requests use paid credits. Metrics refresh only when requested. For a handoff without API fees, open a saved campaign and use X · manual handoff under Delivery.</p>
@@ -1073,6 +1077,7 @@ function Connections({
               .map((account) => (
                 <div className="account" key={account.id}>
                   <strong>{account.name}</strong>
+                  {provider === "gbp" && <p className="muted">{account.remote_id}</p>}
                   <p>
                     {!account.active
                       ? "Reconnect required"

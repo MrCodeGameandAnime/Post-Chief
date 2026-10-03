@@ -64,6 +64,7 @@ export function AddDestination({
           {available.map((a) => (
             <option key={a.id} value={a.id}>
               {a.provider} · {a.name}
+              {a.provider === "gbp" ? " · " + a.remote_id : ""}
             </option>
           ))}
         </select>
@@ -84,6 +85,7 @@ export function AddDestination({
           .join(", ") || "Text only"}
       </p>
       {account?.provider === "youtube" && <YouTubeOptions title={campaign.title} value={youtube} change={setYouTube} />}
+      {account?.provider === "gbp" && <p className="muted">Google standard local post · English text, up to 1,500 characters · optional JPEG/PNG, 10 KiB–5 MiB, at least 250 × 250 pixels. Delivery remains paused until you choose it.</p>}
       {account?.provider === "tiktok" && <TikTokOptions accountId={account.id} body={body}
         assets={assets.filter(a => media.includes(a.id))} consent={tiktokConsent} change={setTikTokConsent} />}
       <button

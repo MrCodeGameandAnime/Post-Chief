@@ -111,6 +111,12 @@ def reconcile(publication_id:str,data:Reconcile,request:Request,actor:Actor=Depe
     try: state=state_for(pub,vault)
     except (InvalidToken,ValueError,TypeError): state={}
     account=db.get(SocialAccount,pub.account_id)
+    if account.provider=='gbp':
+        from postchief.providers.gbp import post_id
+        if data.resolution=='published' and (not post_id(data.provider_id,account.remote_id) or (state.get('gbp_post_id') and state['gbp_post_id']!=data.provider_id)):
+            raise HTTPException(422,'Confirm the existing Google local post resource name for this location')
+        if data.resolution=='not_published' and state.get('gbp_post_id'):
+            raise HTTPException(409,'Google accepted a local post; review that existing post and reconcile its identity instead of creating another')
     if account.provider=='youtube':
         from postchief.providers.youtube import video_id
         if data.resolution=='published' and (not video_id(data.provider_id) or (state.get('video_id') and state['video_id']!=data.provider_id)):

@@ -57,4 +57,5 @@ def disconnect(account_id: str, actor: Actor = Depends(require_owner), db: Sessi
 def capabilities(actor: Actor = Depends(current_actor)):
     require_scope(actor,"campaigns:read")
     return [{"provider":name,"capabilities":asdict(cls.capabilities),"limits":cls.limits,"idempotent":cls.idempotent,
-        'reporting_only':getattr(cls, 'reporting_only', False)} for name,cls in PROVIDERS.items()]
+        'reporting_only':getattr(cls, 'reporting_only', False),
+        'account_reporting':getattr(cls, 'account_reporting', False)} for name,cls in PROVIDERS.items()]

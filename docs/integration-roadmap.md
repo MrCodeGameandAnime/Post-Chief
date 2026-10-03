@@ -11,8 +11,8 @@ A connection card is not a completed integration. Each gate needs authenticated 
 | 13 | Pinterest | OAuth, public board selection, image Pins, scheduled delivery, Pin analytics | Implemented; build passed; live owner acceptance pending |
 | 14 | YouTube | OAuth/channel discovery, resumable video upload, processing/privacy status, metadata and native statistics | Implemented and deployed; CI passed; live owner acceptance pending |
 | 15 | TikTok personal | Login, current creator information, reviewed inbox upload handoff, native privacy/editing, persisted upload/publish status | Implemented inbox path and deployed; CI passed; live owner acceptance pending |
-| 16 | TikTok business | Business authentication/discovery and supported organic/account reporting; separate from personal and ads | Implemented account/profile and recent-post reporting; deployment and live acceptance pending |
-| 17 | Google Business Profile | OAuth, account/location selection, supported local-post creation/status and business performance | Pending |
+| 16 | TikTok business | Business authentication/discovery and supported organic/account reporting; separate from personal and ads | Implemented and deployed; CI passed; live owner acceptance pending |
+| 17 | Google Business Profile | OAuth, account/location selection, supported local-post creation/status and business performance | Implemented; typecheck/build/syntax checks passed; deployment and live owner acceptance pending |
 | 18 | Web and blog | Website analytics connection/data, RSS/Atom discovery and bounded ingestion into agent context; no fake social publication | Pending |
 | 19 | Twitch | OAuth, channel/account context, supported analytics/reporting; no generic feed-post capability | Pending |
 | 20 | Meta Ads, Google Ads, TikTok Ads | OAuth/account selection, read-only account/campaign performance with explicit metric semantics and dates | Pending |
@@ -37,6 +37,7 @@ LinkedIn and Bluesky already have adapters but remain deferred for owner accepta
 - [x] Gate 14: implement YouTube channel consent, resumable upload/checkpoints, processing and actual privacy checks, video/audience controls, durable public metadata and native statistics. Build/typecheck and Python syntax checks passed; deployment and live acceptance remain separately evidenced.
 - [x] Gate 15: Login Kit and rotating grants, current creator/preview/explicit owner consent, bounded MP4 inbox transfer, durable task/status and awaiting-owner completion, public video counters and feedback. Native TikTok completes caption/privacy and posting; Direct Post is not claimed.
 - [x] Gate 16: separate account-holder authorization/inspection and rotating grants, seven-day UTC profile metrics and bounded public post pagination, durable scoped reports/history/export and dashboard/agent exposure. Reporting-only campaign guards and final owner checklist added; live acceptance remains pending.
-- [ ] Gates 17–21: continue with Google Business Profile, then the remaining operational integrations.
+- [x] Gate 17: implement Google business.manage consent and bounded location discovery, STANDARD local posts with persisted accepted identity/LIVE polling, scoped post insights and daily location performance reports. Local verification and deployment evidence follow separately; live acceptance remains pending.
+- [ ] Gates 18–21: continue with web/blog, Twitch, read-only ads reports and Looker Studio.
 
 Official initial sources: [Pinterest OpenAPI](https://github.com/pinterest/api-description), [Pinterest authorization](https://developers.pinterest.com/docs/getting-started/set-up-authentication-and-authorization/), [YouTube uploads](https://developers.google.com/youtube/v3/docs/videos/insert), [TikTok publishing requirements](https://developers.tiktok.com/doc/content-sharing-guidelines).
