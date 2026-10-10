@@ -15,3 +15,4 @@ root/coverage/
 root/.npm-cache/
 **/*.tsbuildinfo
 *.pem
+cloudflared-windows-amd64.exe
