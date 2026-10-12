@@ -12,9 +12,10 @@ from provider_contracts import ProviderError, ErrorReason
 
 def due_validation(sessions, startup=False):
     with sessions() as db:
-        latest = select(AuditEvent.org_id.label('org_id'), AuditEvent.details['account_id'].as_string().label('account_id'),
+        account_id = AuditEvent.details['account_id'].as_string()
+        latest = select(AuditEvent.org_id.label('org_id'), account_id.label('account_id'),
                         func.max(AuditEvent.created_at).label('requested')).where(AuditEvent.action == 'connection.twitch_validation_requested')
-        latest = latest.group_by(AuditEvent.org_id, AuditEvent.details['account_id'].as_string()).subquery()
+        latest = latest.group_by(AuditEvent.org_id, account_id).subquery()
         query = select(SocialAccount.id).outerjoin(latest, (latest.c.account_id == SocialAccount.id) & (latest.c.org_id == SocialAccount.org_id))
         query = query.where(SocialAccount.provider == 'twitch', SocialAccount.active.is_(True))
         if not startup: query = query.where(or_(latest.c.requested.is_(None), latest.c.requested <= datetime.now(timezone.utc) - timedelta(minutes=50)))

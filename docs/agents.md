@@ -1,5 +1,16 @@
 # Maintainer API and owner controls
 
+## Remote MCP access
+
+The cloud agent can use named tools at `https://postchief.404builds.com/mcp`
+after OAuth linking. See [`root/mcp/README.md`](../root/mcp/README.md) for source,
+configuration, and tools. Consent creates a revocable scoped agent identity in
+Agent settings. Calls retain the existing scopes, organization boundaries,
+autonomy, approvals, and audit records. MCP does not run an LLM or schedule the
+AI agent's recurring runs.
+
+## Existing API keys
+
 The owner creates a named scoped key in Agent, or `POST /api/agent/keys`. The returned `pc_agent_…` token is shown once and only its SHA-256 hash is stored. Send it in `Authorization: Bearer …`. Never put it in URLs, GitHub content or run summaries. Revoke with `DELETE /api/agent/keys/{id}`. Agent keys cannot create keys, manage connections, change autonomy or decide approvals.
 
 Read endpoints reuse the campaign/planner, connection, capability, media, GitHub and analytics APIs with explicit scopes. `GET /api/settings/autonomy` reports policy. `GET /api/audit`, `/api/agent/runs` and `/api/approvals` expose permitted concise records. Agents only see their own approvals. Authentication attempts with valid keys record method/path without credentials or request bodies. Mutating route audits report durable results. `POST /api/agent/runs` records a bounded summary/status; do not submit hidden chain-of-thought or secrets.

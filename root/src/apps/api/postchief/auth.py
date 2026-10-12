@@ -50,6 +50,13 @@ def bootstrap_owner(app):
 def current_actor(request: Request, db: Session = Depends(get_db)) -> Actor:
     bearer = request.headers.get("authorization", "")
     if bearer.startswith("Bearer "):
+        if bearer[7:].startswith('pc_mcp_'):
+            from postchief_mcp.identity import resolve_oauth_actor
+            actor = resolve_oauth_actor(bearer[7:], db, request.app.state.settings)
+            db.add(AuditEvent(org_id=actor.org_id, actor_id=actor.id,
+                action='agent.request', details={'method': request.method, 'path': request.url.path}))
+            db.commit()
+            return actor
         key = db.scalar(select(AgentKey).where(AgentKey.token_hash == digest(bearer[7:]), AgentKey.active.is_(True)))
         if not key:
             raise HTTPException(401, "Invalid agent key")

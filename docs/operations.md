@@ -1,5 +1,15 @@
 # Operating Post Chief
 
+## Remote MCP deployment
+
+See [`root/mcp/README.md`](../root/mcp/README.md) for exact callback configuration,
+OAuth linking, and revocation. The adapter runs in the API's existing process.
+Back up the database and apply additive migration `c84b3d91a602` before enabling
+`MCP_ENABLED`. `PUBLIC_URL` and `FRONTEND_URL` must match the HTTPS origin. The
+existing Cloudflare route covers MCP and OAuth paths. Retain the previous image;
+rollback does not require dropping new tables. Verify actual agent calls and
+measure VM memory after enabling. Keep local Windows job processing stopped.
+
 Run commands from `root/`. The compose deployment serves the built dashboard and API on loopback port 8000; PostgreSQL and Redis remain on the private container network. Put a trusted HTTPS reverse proxy in front of the API for provider access. Configure forwarded-header trust for the actual proxy, not arbitrary clients. Production cookies require HTTPS and `SECURE_COOKIES=true`.
 
 ## Startup and checks

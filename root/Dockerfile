@@ -11,6 +11,7 @@ WORKDIR /app
 COPY requirements.lock pyproject.toml ./
 RUN pip install --no-cache-dir -r requirements.lock
 COPY src ./src
+COPY mcp ./mcp
 COPY migrations ./migrations
 COPY alembic.ini ./
 COPY --from=dashboard /build/src/apps/web/dist ./web

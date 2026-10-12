@@ -1,0 +1,36 @@
+# Use after compose.yaml on the AMD E2 Micro VM.
+# Application image is built locally and transferred with docker save/load.
+services:
+  db:
+    command: ["postgres", "-c", "shared_buffers=32MB", "-c", "max_connections=30"]
+    logging: &bounded_logs
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  redis:
+    logging: *bounded_logs
+  migrate:
+    build: !reset null
+    image: post-chief:oracle
+    pull_policy: never
+    logging: *bounded_logs
+  api:
+    build: !reset null
+    image: post-chief:oracle
+    pull_policy: never
+    environment:
+      SECURE_COOKIES: "true"
+    logging: *bounded_logs
+  worker:
+    build: !reset null
+    image: post-chief:oracle
+    pull_policy: never
+    # Retain prefork so the existing task time limits remain effective.
+    command: celery -A postchief_worker.tasks:app worker --loglevel=INFO --concurrency=1
+    logging: *bounded_logs
+  scheduler:
+    build: !reset null
+    image: post-chief:oracle
+    pull_policy: never
+    logging: *bounded_logs

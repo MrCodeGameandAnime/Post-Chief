@@ -36,8 +36,15 @@ def create_app(settings: Settings | None = None):
     @asynccontextmanager
     async def lifespan(app):
         bootstrap_owner(app)
-        yield
-        app.state.engine.dispose()
+        try:
+            if settings.mcp_enabled:
+                app.state.mcp_oauth.configure_client()
+                async with app.state.mcp.lifespan():
+                    yield
+            else:
+                yield
+        finally:
+            app.state.engine.dispose()
     app = FastAPI(title="Post Chief", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
     app.state.engine = make_engine(settings.database_url)
@@ -88,6 +95,20 @@ def create_app(settings: Settings | None = None):
         with app.state.engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         return {"status": "ok", "application": "Post Chief"}
+
+    if settings.mcp_enabled:
+        from postchief_mcp.server import create_mcp
+        from postchief_mcp.oauth import build_oauth_routes
+        from postchief_mcp.consent import build_consent_routes
+        from postchief_mcp.limits import install_limits
+        from starlette.routing import Route
+        build_oauth_routes(app)
+        build_consent_routes(app)
+        install_limits(app)
+        app.state.mcp = create_mcp(app)
+        # Preserve the SDK's authentication/context middleware on each route.
+        app.router.routes.extend(Route(route.path, endpoint=app.state.mcp.asgi_app)
+            for route in app.state.mcp.asgi_app.routes)
 
     if Path(settings.web_dir).is_dir():
         app.mount('/',StaticFiles(directory=settings.web_dir,html=True),name='dashboard')

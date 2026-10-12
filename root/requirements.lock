@@ -1,4 +1,16 @@
 alembic==1.20.0
+attrs==26.1.0
+httpcore2==2.13.1
+httpx2==2.13.1
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+mcp==2.3.0
+mcp-types==2.3.0
+pywin32==312; sys_platform == 'win32'
+referencing==0.37.0
+rpds-py==2026.9.1
+sse-starlette==3.5.0
+truststore==0.10.4
 amqp==5.4.0
 annotated-doc==0.0.5
 annotated-types==0.8.0

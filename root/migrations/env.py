@@ -2,6 +2,7 @@ import os
 from alembic import context
 from postchief.db import make_engine
 from postchief.models import Base
+from postchief_mcp import models as mcp_models
 
 url = os.environ.get("DATABASE_URL", "postgresql+psycopg://postchief:postchief@localhost:5432/postchief")
 if context.is_offline_mode():
